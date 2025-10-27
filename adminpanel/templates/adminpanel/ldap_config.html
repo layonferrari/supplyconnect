@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>🔐 Configuração LDAP</h3>
+<form method="post">{% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">Salvar</button>
+</form>
+<a href="{% url 'adminpanel_index' %}">Voltar</a>
+{% endblock %}
