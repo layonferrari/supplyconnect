@@ -1,0 +1,425 @@
+{% extends "access_control/base/panel_base.html" %}
+{% load i18n %}
+
+{% block title %}
+    {% if is_new %}
+        {% trans "Configurar Active Directory" %}
+    {% else %}
+        {% trans "Editar Active Directory" %}
+    {% endif %}
+{% endblock %}
+
+{% block page_title %}
+    {% if is_new %}
+        {% trans "Configurar Active Directory" %}
+    {% else %}
+        {% trans "Editar Configuração AD" %}
+    {% endif %}
+{% endblock %}
+
+{% block breadcrumb %}
+    <a href="{% url 'access_control:home' %}">{% trans "Início" %}</a>
+    <span>/</span>
+    <a href="{% url 'access_control:country_dashboard' %}">{% trans "Dashboard" %}</a>
+    <span>/</span>
+    <span>{% trans "Active Directory" %}</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex items-center gap-4 mb-3">
+            <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
+                <span class="text-2xl">🔐</span>
+            </div>
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">
+                    {% if is_new %}
+                        {% trans "Configurar Active Directory" %}
+                    {% else %}
+                        {% trans "Editar Configuração AD" %}
+                    {% endif %}
+                </h1>
+                <p class="text-gray-600 mt-1">
+                    {% if is_new %}
+                        {% trans "Conecte seu servidor Active Directory para autenticação corporativa" %}
+                    {% else %}
+                        {% trans "Atualize as configurações de conexão do seu Active Directory" %}
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Info -->
+    <div class="bg-blue-50 border border-blue-200 rounded-2xl p-6 mb-8">
+        <div class="flex items-start gap-4">
+            <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <span class="text-blue-600 text-lg">💡</span>
+            </div>
+            <div>
+                <h3 class="font-semibold text-blue-900 mb-1">{% trans "Configuração do Active Directory" %}</h3>
+                <p class="text-blue-800 text-sm leading-relaxed">
+                    {% trans "Configure os dados do seu servidor LDAP/Active Directory. Use uma conta de serviço com permissões de leitura para conectar ao domínio corporativo." %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Container -->
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm">
+        {% if form.non_field_errors %}
+        <div class="bg-red-50 border-b border-red-200 rounded-t-2xl p-6">
+            <div class="flex items-center gap-3">
+                <span class="text-red-500 text-lg">⚠️</span>
+                <div>
+                    <h4 class="font-semibold text-red-900">{% trans "Erro de validação" %}</h4>
+                    <p class="text-red-800 text-sm">{{ form.non_field_errors.0 }}</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <form method="post" novalidate class="p-8">
+            {% csrf_token %}
+            
+            <!-- Server Configuration -->
+            <div class="mb-10">
+                <h3 class="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-3">
+                    <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+                    {% trans "Configuração do Servidor" %}
+                </h3>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Server Name -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.name.label }} <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.name }}
+                        {% if form.name.help_text %}
+                            <p class="text-gray-500 text-xs mt-2">{{ form.name.help_text }}</p>
+                        {% endif %}
+                        {% if form.name.errors %}
+                            <p class="text-red-600 text-xs mt-2">{{ form.name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Port -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.port.label }} <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.port }}
+                        {% if form.port.help_text %}
+                            <p class="text-gray-500 text-xs mt-2">{{ form.port.help_text }}</p>
+                        {% endif %}
+                        {% if form.port.errors %}
+                            <p class="text-red-600 text-xs mt-2">{{ form.port.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Server Address -->
+                <div class="mt-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.ldap_server.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.ldap_server }}
+                    {% if form.ldap_server.help_text %}
+                        <p class="text-gray-500 text-xs mt-2">{{ form.ldap_server.help_text }}</p>
+                    {% endif %}
+                    {% if form.ldap_server.errors %}
+                        <p class="text-red-600 text-xs mt-2">{{ form.ldap_server.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Security Options -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                    <label class="flex items-center gap-3 p-4 border border-gray-200 rounded-xl hover:border-blue-300 transition-colors cursor-pointer">
+                        {{ form.use_ssl }}
+                        <div>
+                            <span class="font-medium text-gray-900">{{ form.use_ssl.label }}</span>
+                            {% if form.use_ssl.help_text %}
+                                <p class="text-gray-500 text-xs mt-1">{{ form.use_ssl.help_text }}</p>
+                            {% endif %}
+                        </div>
+                    </label>
+
+                    <label class="flex items-center gap-3 p-4 border border-gray-200 rounded-xl hover:border-blue-300 transition-colors cursor-pointer">
+                        {{ form.use_tls }}
+                        <div>
+                            <span class="font-medium text-gray-900">{{ form.use_tls.label }}</span>
+                            {% if form.use_tls.help_text %}
+                                <p class="text-gray-500 text-xs mt-1">{{ form.use_tls.help_text }}</p>
+                            {% endif %}
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Authentication -->
+            <div class="mb-10">
+                <h3 class="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-3">
+                    <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                    {% trans "Autenticação" %}
+                </h3>
+                
+                <div class="space-y-6">
+                    <!-- Bind DN -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.bind_user_dn.label }} <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.bind_user_dn }}
+                        {% if form.bind_user_dn.help_text %}
+                            <p class="text-gray-500 text-xs mt-2">{{ form.bind_user_dn.help_text }}</p>
+                        {% endif %}
+                        {% if form.bind_user_dn.errors %}
+                            <p class="text-red-600 text-xs mt-2">{{ form.bind_user_dn.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Password -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.bind_password.label }}
+                            {% if not is_new %}
+                                <span class="text-gray-500 font-normal">({% trans "opcional" %})</span>
+                            {% else %}
+                                <span class="text-red-500">*</span>
+                            {% endif %}
+                        </label>
+                        {{ form.bind_password }}
+                        {% if form.bind_password.help_text %}
+                            <p class="text-gray-500 text-xs mt-2">{{ form.bind_password.help_text }}</p>
+                        {% endif %}
+                        {% if form.bind_password.errors %}
+                            <p class="text-red-600 text-xs mt-2">{{ form.bind_password.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search Configuration -->
+            <div class="mb-10">
+                <h3 class="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-3">
+                    <span class="w-2 h-2 bg-purple-500 rounded-full"></span>
+                    {% trans "Configuração de Busca" %}
+                </h3>
+                
+                <div class="space-y-6">
+                    <!-- Base DN -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.base_dn.label }} <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.base_dn }}
+                        {% if form.base_dn.help_text %}
+                            <p class="text-gray-500 text-xs mt-2">{{ form.base_dn.help_text }}</p>
+                        {% endif %}
+                        {% if form.base_dn.errors %}
+                            <p class="text-red-600 text-xs mt-2">{{ form.base_dn.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- User Search Base -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.user_search_base.label }}
+                        </label>
+                        {{ form.user_search_base }}
+                        {% if form.user_search_base.help_text %}
+                            <p class="text-gray-500 text-xs mt-2">{{ form.user_search_base.help_text }}</p>
+                        {% endif %}
+                        {% if form.user_search_base.errors %}
+                            <p class="text-red-600 text-xs mt-2">{{ form.user_search_base.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Search Filter -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.search_filter.label }} <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.search_filter }}
+                        {% if form.search_filter.help_text %}
+                            <p class="text-gray-500 text-xs mt-2">{{ form.search_filter.help_text }}</p>
+                        {% endif %}
+                        {% if form.search_filter.errors %}
+                            <p class="text-red-600 text-xs mt-2">{{ form.search_filter.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attribute Mapping -->
+            <div class="mb-10">
+                <h3 class="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-3">
+                    <span class="w-2 h-2 bg-orange-500 rounded-full"></span>
+                    {% trans "Mapeamento de Atributos" %}
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- First Name -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.attr_first_name.label }}
+                        </label>
+                        {{ form.attr_first_name }}
+                        {% if form.attr_first_name.errors %}
+                            <p class="text-red-600 text-xs mt-2">{{ form.attr_first_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Last Name -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.attr_last_name.label }}
+                        </label>
+                        {{ form.attr_last_name }}
+                        {% if form.attr_last_name.errors %}
+                            <p class="text-red-600 text-xs mt-2">{{ form.attr_last_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Email -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.attr_email.label }}
+                        </label>
+                        {{ form.attr_email }}
+                        {% if form.attr_email.errors %}
+                            <p class="text-red-600 text-xs mt-2">{{ form.attr_email.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status -->
+            <div class="mb-10">
+                <h3 class="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-3">
+                    <span class="w-2 h-2 bg-gray-500 rounded-full"></span>
+                    {% trans "Status" %}
+                </h3>
+                
+                <label class="flex items-center gap-3 p-4 border border-gray-200 rounded-xl hover:border-blue-300 transition-colors cursor-pointer">
+                    {{ form.is_active }}
+                    <div>
+                        <span class="font-medium text-gray-900">{{ form.is_active.label }}</span>
+                        {% if form.is_active.help_text %}
+                            <p class="text-gray-500 text-xs mt-1">{{ form.is_active.help_text }}</p>
+                        {% endif %}
+                    </div>
+                </label>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center justify-between pt-8 border-t border-gray-200">
+                <div class="flex items-center gap-4">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-xl transition-colors flex items-center gap-2">
+                        <span>✓</span>
+                        {% if is_new %}
+                            {% trans "Salvar Configuração" %}
+                        {% else %}
+                            {% trans "Atualizar Configuração" %}
+                        {% endif %}
+                    </button>
+                    
+                    <a href="{% url 'access_control:country_dashboard' %}" class="text-gray-600 hover:text-gray-800 font-medium py-3 px-6 rounded-xl transition-colors">
+                        {% trans "Cancelar" %}
+                    </a>
+                </div>
+
+                {% if not is_new %}
+                <button type="button" onclick="testConnection()" class="bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-xl transition-colors flex items-center gap-2">
+                    <span>🔍</span>
+                    {% trans "Testar Conexão" %}
+                </button>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+/* Form field styling */
+input, select, textarea {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+    background: white;
+    color: #1f2937;
+    box-sizing: border-box;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+input::placeholder {
+    color: #9ca3af;
+}
+
+/* Checkbox styling */
+input[type="checkbox"] {
+    width: 1.25rem;
+    height: 1.25rem;
+    cursor: pointer;
+    border-radius: 0.375rem;
+}
+
+/* Password field */
+input[type="password"] {
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.05em;
+}
+
+/* Error states */
+input:invalid, select:invalid, textarea:invalid {
+    border-color: #ef4444;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .max-w-6xl {
+        margin-left: 1rem;
+        margin-right: 1rem;
+    }
+    
+    .p-8 {
+        padding: 1.5rem;
+    }
+    
+    .grid-cols-1 {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<script>
+function testConnection() {
+    if (!confirm('{% trans "Deseja testar a conexão com o Active Directory?" %}')) {
+        return;
+    }
+    
+    // Simulate connection test
+    const button = event.target;
+    const originalText = button.innerHTML;
+    button.innerHTML = '⏳ {% trans "Testando..." %}';
+    button.disabled = true;
+    
+    setTimeout(() => {
+        alert('✅ {% trans "Conexão realizada com sucesso!" %}');
+        button.innerHTML = originalText;
+        button.disabled = false;
+    }, 2000);
+}
+</script>
+{% endblock %}

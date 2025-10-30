@@ -1,0 +1,426 @@
+{% extends "access_control/base/panel_base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Teste de Conexão AD" %}{% endblock %}
+{% block page_title %}{% trans "Teste de Conexão - Active Directory" %}{% endblock %}
+
+{% block breadcrumb %}
+    <a href="{% url 'access_control:home' %}">{% trans "Início" %}</a>
+    <span>/</span>
+    <a href="{% url 'access_control:country_dashboard' %}">{% trans "Dashboard" %}</a>
+    <span>/</span>
+    <span>{% trans "Teste AD" %}</span>
+{% endblock %}
+
+{% block content %}
+<!-- Estilos personalizados para layout claro -->
+<style>
+    /* Layout claro */
+    body {
+        background: #f0f4f8 !important;
+    }
+    
+    .main-content {
+        background: #f0f4f8 !important;
+    }
+    
+    /* Card de resultado */
+    .test-result-card {
+        background: white;
+        border-radius: 12px;
+        padding: 2.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        margin: 0 auto;
+        max-width: 800px;
+        border: 1px solid #e2e8f0;
+    }
+    
+    /* Header de sucesso */
+    .success-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding: 2rem;
+        background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%);
+        border-radius: 12px;
+        border: 2px solid #9ae6b4;
+    }
+    
+    .success-icon {
+        font-size: 5rem;
+        margin-bottom: 1rem;
+        animation: scaleIn 0.5s ease;
+    }
+    
+    @keyframes scaleIn {
+        from { transform: scale(0); }
+        to { transform: scale(1); }
+    }
+    
+    .success-header h2 {
+        color: #22543d;
+        margin-bottom: 0.5rem;
+        font-size: 1.75rem;
+    }
+    
+    .success-header p {
+        color: #276749;
+        font-size: 1rem;
+        margin: 0;
+    }
+    
+    /* Header de erro */
+    .error-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding: 2rem;
+        background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+        border-radius: 12px;
+        border: 2px solid #fc8181;
+    }
+    
+    .error-icon {
+        font-size: 5rem;
+        margin-bottom: 1rem;
+        animation: shake 0.5s ease;
+    }
+    
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-10px); }
+        75% { transform: translateX(10px); }
+    }
+    
+    .error-header h2 {
+        color: #742a2a;
+        margin-bottom: 0.5rem;
+        font-size: 1.75rem;
+    }
+    
+    .error-header p {
+        color: #9b2c2c;
+        font-size: 1rem;
+        margin: 0;
+    }
+    
+    /* Detalhes da conexão */
+    .connection-details {
+        background: #f7fafc;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .details-title {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #cbd5e0;
+    }
+    
+    .details-title h4 {
+        margin: 0;
+        color: #2d3748;
+        font-size: 1.1rem;
+    }
+    
+    .detail-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .detail-item:last-child {
+        border-bottom: none;
+    }
+    
+    .detail-label {
+        font-weight: 600;
+        color: #4a5568;
+    }
+    
+    .detail-value {
+        color: #2d3748;
+        font-family: 'Courier New', monospace;
+        text-align: right;
+    }
+    
+    .detail-value.success {
+        color: #38a169;
+        font-weight: bold;
+    }
+    
+    .detail-value.error {
+        color: #e53e3e;
+        font-weight: bold;
+    }
+    
+    /* Mensagem de erro detalhada */
+    .error-message-box {
+        background: #fffaf0;
+        border-left: 4px solid #dd6b20;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+    }
+    
+    .error-message-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+    
+    .error-message-header h4 {
+        margin: 0;
+        color: #7c2d12;
+        font-size: 1.1rem;
+    }
+    
+    .error-message-content {
+        background: white;
+        padding: 1rem;
+        border-radius: 6px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+        color: #c53030;
+        word-break: break-word;
+    }
+    
+    /* Sugestões de solução */
+    .suggestions-box {
+        background: #ebf8ff;
+        border-left: 4px solid #4299e1;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+    }
+    
+    .suggestions-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+    
+    .suggestions-header h4 {
+        margin: 0;
+        color: #2c5282;
+        font-size: 1.1rem;
+    }
+    
+    .suggestions-box ul {
+        margin: 0;
+        padding-left: 1.5rem;
+        color: #2c5282;
+        line-height: 1.8;
+    }
+    
+    .suggestions-box ul li {
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Botões */
+    .button-group {
+        display: flex;
+        gap: 1rem;
+        padding-top: 1.5rem;
+        border-top: 2px solid #e2e8f0;
+        flex-wrap: wrap;
+    }
+    
+    .btn-gradient-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 0.875rem 2rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn-gradient-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-secondary {
+        background: white;
+        color: #718096;
+        border: 2px solid #e2e8f0;
+        padding: 0.875rem 2rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .btn-secondary:hover {
+        background: #f7fafc;
+        border-color: #cbd5e0;
+        transform: translateY(-2px);
+    }
+    
+    .btn-warning {
+        background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+        color: white;
+        border: none;
+        padding: 0.875rem 2rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        box-shadow: 0 4px 12px rgba(237, 137, 54, 0.3);
+    }
+    
+    .btn-warning:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(237, 137, 54, 0.4);
+    }
+</style>
+
+<!-- Card de resultado -->
+<div class="test-result-card">
+    {% if success %}
+        <!-- SUCESSO -->
+        <div class="success-header">
+            <div class="success-icon">✅</div>
+            <h2>{% trans "Conexão Bem-Sucedida!" %}</h2>
+            <p>{% trans "O Active Directory está configurado corretamente e respondendo" %}</p>
+        </div>
+        
+        <!-- Detalhes da conexão -->
+        <div class="connection-details">
+            <div class="details-title">
+                <span>📊</span>
+                <h4>{% trans "Detalhes da Conexão" %}</h4>
+            </div>
+            
+            <div class="detail-item">
+                <span class="detail-label">{% trans "Servidor:" %}</span>
+                <span class="detail-value">{{ server }}</span>
+            </div>
+            
+            <div class="detail-item">
+                <span class="detail-label">{% trans "Porta:" %}</span>
+                <span class="detail-value">{{ port }}</span>
+            </div>
+            
+            <div class="detail-item">
+                <span class="detail-label">{% trans "Protocolo:" %}</span>
+                <span class="detail-value">
+                    {% if use_ssl %}
+                        LDAPS (SSL/TLS)
+                    {% else %}
+                        LDAP
+                    {% endif %}
+                </span>
+            </div>
+            
+            <div class="detail-item">
+                <span class="detail-label">{% trans "Status:" %}</span>
+                <span class="detail-value success">✓ {% trans "Conectado" %}</span>
+            </div>
+        </div>
+        
+        <!-- Botões de ação -->
+        <div class="button-group">
+            <a href="{% url 'access_control:country_dashboard' %}" class="btn-gradient-primary">
+                ← {% trans "Voltar ao Dashboard" %}
+            </a>
+            <a href="{% url 'access_control:country_ad_config' %}" class="btn-secondary">
+                ⚙️ {% trans "Editar Configuração" %}
+            </a>
+        </div>
+        
+    {% else %}
+        <!-- ERRO -->
+        <div class="error-header">
+            <div class="error-icon">❌</div>
+            <h2>{% trans "Falha na Conexão" %}</h2>
+            <p>{% trans "Não foi possível conectar ao Active Directory" %}</p>
+        </div>
+        
+        <!-- Mensagem de erro -->
+        <div class="error-message-box">
+            <div class="error-message-header">
+                <span>⚠️</span>
+                <h4>{% trans "Mensagem de Erro" %}</h4>
+            </div>
+            <div class="error-message-content">
+                {{ error_message }}
+            </div>
+        </div>
+        
+        <!-- Detalhes da tentativa de conexão -->
+        <div class="connection-details">
+            <div class="details-title">
+                <span>📊</span>
+                <h4>{% trans "Detalhes da Tentativa" %}</h4>
+            </div>
+            
+            <div class="detail-item">
+                <span class="detail-label">{% trans "Servidor:" %}</span>
+                <span class="detail-value">{{ server|default:"N/A" }}</span>
+            </div>
+            
+            <div class="detail-item">
+                <span class="detail-label">{% trans "Porta:" %}</span>
+                <span class="detail-value">{{ port|default:"N/A" }}</span>
+            </div>
+            
+            <div class="detail-item">
+                <span class="detail-label">{% trans "Status:" %}</span>
+                <span class="detail-value error">✗ {% trans "Falhou" %}</span>
+            </div>
+        </div>
+        
+        <!-- Sugestões de solução -->
+        <div class="suggestions-box">
+            <div class="suggestions-header">
+                <span>💡</span>
+                <h4>{% trans "Possíveis Soluções" %}</h4>
+            </div>
+            <ul>
+                <li>{% trans "Verifique se o endereço do servidor está correto" %}</li>
+                <li>{% trans "Confirme se a porta está correta (389 sem SSL, 636 com SSL)" %}</li>
+                <li>{% trans "Verifique se o firewall permite conexões na porta especificada" %}</li>
+                <li>{% trans "Confirme que o usuário de bind (Bind DN) está correto" %}</li>
+                <li>{% trans "Verifique se a senha do usuário de bind está correta" %}</li>
+                <li>{% trans "Se usar SSL, confirme que o certificado é válido" %}</li>
+                <li>{% trans "Teste a conectividade de rede com o servidor AD" %}</li>
+            </ul>
+        </div>
+        
+        <!-- Botões de ação -->
+        <div class="button-group">
+            <a href="{% url 'access_control:country_ad_config' %}" class="btn-warning">
+                ⚙️ {% trans "Corrigir Configuração" %}
+            </a>
+            <a href="{% url 'access_control:country_dashboard' %}" class="btn-secondary">
+                ← {% trans "Voltar ao Dashboard" %}
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

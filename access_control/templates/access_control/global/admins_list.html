@@ -1,0 +1,72 @@
+{% extends "access_control/base/panel_base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Admins de País" %}{% endblock %}
+{% block page_title %}{% trans "Administradores de País" %}{% endblock %}
+
+{% block breadcrumb %}
+    <a href="{% url 'access_control:home' %}">{% trans "Início" %}</a>
+    <span>/</span>
+    <a href="{% url 'access_control:global_dashboard' %}">{% trans "Dashboard" %}</a>
+    <span>/</span>
+    <span>{% trans "Admins de País" %}</span>
+{% endblock %}
+
+{% block sidebar_menu %}
+    <li class="sidebar-nav-item">
+        <a href="{% url 'access_control:global_dashboard' %}" class="sidebar-nav-link">
+            <span class="sidebar-nav-icon">📊</span>
+            <span>{% trans "Dashboard" %}</span>
+        </a>
+    </li>
+    <li class="sidebar-nav-item">
+        <a href="{% url 'access_control:global_countries' %}" class="sidebar-nav-link">
+            <span class="sidebar-nav-icon">🌍</span>
+            <span>{% trans "Países" %}</span>
+        </a>
+    </li>
+    <li class="sidebar-nav-item">
+        <a href="{% url 'access_control:global_admins_list' %}" class="sidebar-nav-link active">
+            <span class="sidebar-nav-icon">👥</span>
+            <span>{% trans "Admins de País" %}</span>
+        </a>
+    </li>
+    <li class="sidebar-nav-item">
+        <a href="{% url 'access_control:global_ad_config' %}" class="sidebar-nav-link">
+            <span class="sidebar-nav-icon">🔧</span>
+            <span>{% trans "Configurar AD Global" %}</span>
+        </a>
+    </li>
+    <li class="sidebar-nav-item">
+        <a href="{% url 'access_control:global_smtp_config' %}" class="sidebar-nav-link">
+            <span class="sidebar-nav-icon">📧</span>
+            <span>{% trans "Configurar SMTP Global" %}</span>
+        </a>
+    </li>
+    <li class="sidebar-nav-item">
+        <a href="{% url 'admin:index' %}" class="sidebar-nav-link">
+            <span class="sidebar-nav-icon">⚙️</span>
+            <span>{% trans "Django Admin" %}</span>
+        </a>
+    </li>
+{% endblock %}
+
+{% block topbar_actions %}
+    <a href="{% url 'access_control:global_admin_create' %}" class="btn btn-primary">
+        <span>➕</span>
+        <span>{% trans "Criar Novo Admin" %}</span>
+    </a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <p>{% trans "Lista de administradores de país (em desenvolvimento)" %}</p>
+</div>
+{% endblock %}
+```
+
+---
+
+Agora acesse:
+```
+http://127.0.0.1:8000/admin-panel/global/admins/

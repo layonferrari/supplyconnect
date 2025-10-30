@@ -1,0 +1,417 @@
+{% extends "access_control/base/panel_base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Criar País e Admin" %}{% endblock %}
+
+{% block page_title %}{% trans "Criar Novo País e Admin Responsável" %}{% endblock %}
+
+{% block breadcrumb %}
+    <a href="{% url 'access_control:home' %}">{% trans "Início" %}</a>
+    <span>/</span>
+    <a href="{% url 'access_control:global_dashboard' %}">{% trans "Dashboard" %}</a>
+    <span>/</span>
+    <a href="{% url 'access_control:global_admins_list' %}">{% trans "Admins" %}</a>
+    <span>/</span>
+    <span>{% trans "Criar" %}</span>
+{% endblock %}
+
+{% block sidebar_menu %}
+    <li class="sidebar-nav-item">
+        <a href="{% url 'access_control:global_dashboard' %}" class="sidebar-nav-link">
+            <span class="sidebar-nav-icon">📊</span>
+            <span>{% trans "Dashboard" %}</span>
+        </a>
+    </li>
+    <li class="sidebar-nav-item">
+        <a href="{% url 'access_control:global_countries' %}" class="sidebar-nav-link">
+            <span class="sidebar-nav-icon">🌍</span>
+            <span>{% trans "Países" %}</span>
+        </a>
+    </li>
+    <li class="sidebar-nav-item">
+        <a href="{% url 'access_control:global_admins_list' %}" class="sidebar-nav-link active">
+            <span class="sidebar-nav-icon">👥</span>
+            <span>{% trans "Admins de País" %}</span>
+        </a>
+    </li>
+    <li class="sidebar-nav-item">
+        <a href="{% url 'access_control:global_ad_config' %}" class="sidebar-nav-link">
+            <span class="sidebar-nav-icon">🔧</span>
+            <span>{% trans "Configurar AD Global" %}</span>
+        </a>
+    </li>
+    <li class="sidebar-nav-item">
+        <a href="{% url 'access_control:global_smtp_config' %}" class="sidebar-nav-link">
+            <span class="sidebar-nav-icon">📧</span>
+            <span>{% trans "Configurar SMTP Global" %}</span>
+        </a>
+    </li>
+    <li class="sidebar-nav-item">
+        <a href="{% url 'admin:index' %}" class="sidebar-nav-link">
+            <span class="sidebar-nav-icon">⚙️</span>
+            <span>{% trans "Django Admin" %}</span>
+        </a>
+    </li>
+{% endblock %}
+
+{% block content %}
+<style>
+    .form-card {
+        background: var(--bg-card);
+        border-radius: 16px;
+        padding: 30px;
+        border: 1px solid var(--border-color);
+        margin-bottom: 20px;
+    }
+
+    .form-section {
+        margin-bottom: 30px;
+        padding-bottom: 30px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .form-section:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+
+    .form-section-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--primary-blue);
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-light);
+        margin-bottom: 8px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 12px 16px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        color: var(--text-light);
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-blue);
+        background: rgba(255, 255, 255, 0.08);
+    }
+
+    .form-control::placeholder {
+        color: var(--text-gray);
+    }
+
+    .form-check {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px;
+        background: rgba(0, 145, 218, 0.05);
+        border-radius: 8px;
+        margin-bottom: 10px;
+        transition: all 0.3s ease;
+    }
+
+    .form-check:hover {
+        background: rgba(0, 145, 218, 0.1);
+    }
+
+    .form-check-input {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+    }
+
+    .form-check-label {
+        font-size: 14px;
+        color: var(--text-light);
+        cursor: pointer;
+        flex: 1;
+    }
+
+    .form-help {
+        font-size: 12px;
+        color: var(--text-gray);
+        margin-top: 5px;
+    }
+
+    .form-error {
+        font-size: 12px;
+        color: var(--danger);
+        margin-top: 5px;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 15px;
+        justify-content: flex-end;
+        margin-top: 30px;
+    }
+
+    .info-box {
+        background: rgba(0, 145, 218, 0.1);
+        border: 1px solid var(--primary-blue);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 30px;
+    }
+
+    .info-box-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--primary-blue);
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .info-box-content {
+        font-size: 14px;
+        color: var(--text-gray);
+        line-height: 1.6;
+    }
+
+    .info-box-content ul {
+        margin: 10px 0 0 20px;
+    }
+
+    .info-box-content li {
+        margin-bottom: 5px;
+    }
+
+    .permissions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 10px;
+    }
+</style>
+
+<!-- INFO BOX -->
+<div class="info-box">
+    <div class="info-box-title">
+        <span>ℹ️</span>
+        <span>{% trans "Como funciona?" %}</span>
+    </div>
+    <div class="info-box-content">
+        <p>{% trans "Ao criar um novo país, você está:" %}</p>
+        <ul>
+            <li>{% trans "Criando um usuário local (admin) responsável pelo país" %}</li>
+            <li>{% trans "Definindo quais permissões este admin terá" %}</li>
+            <li>{% trans "O admin poderá fazer login e configurar o Active Directory" %}</li>
+            <li>{% trans "Após configurar o AD, colaboradores daquele país poderão fazer login" %}</li>
+        </ul>
+    </div>
+</div>
+
+<!-- FORMULÁRIO -->
+<form method="post" class="form-card">
+    {% csrf_token %}
+    
+    <!-- PAÍS -->
+    <div class="form-section">
+        <div class="form-section-title">
+            <span>🌍</span>
+            <span>{% trans "País" %}</span>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label" for="id_country_code">
+                {{ form.country_code.label }}
+            </label>
+            {{ form.country_code }}
+            {% if form.country_code.errors %}
+                <div class="form-error">{{ form.country_code.errors.0 }}</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- DADOS DO ADMIN -->
+    <div class="form-section">
+        <div class="form-section-title">
+            <span>👤</span>
+            <span>{% trans "Admin Responsável (Usuário Local)" %}</span>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label" for="id_first_name">
+                {{ form.first_name.label }}
+            </label>
+            {{ form.first_name }}
+            {% if form.first_name.errors %}
+                <div class="form-error">{{ form.first_name.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="id_last_name">
+                {{ form.last_name.label }}
+            </label>
+            {{ form.last_name }}
+            {% if form.last_name.errors %}
+                <div class="form-error">{{ form.last_name.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="id_email">
+                {{ form.email.label }}
+            </label>
+            {{ form.email }}
+            {% if form.email.errors %}
+                <div class="form-error">{{ form.email.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="id_username">
+                {{ form.username.label }}
+            </label>
+            {{ form.username }}
+            {% if form.username.errors %}
+                <div class="form-error">{{ form.username.errors.0 }}</div>
+            {% endif %}
+            <div class="form-help">{% trans "Sugestão: admin_xx (onde xx é o código do país)" %}</div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="id_password">
+                {{ form.password.label }}
+            </label>
+            {{ form.password }}
+            {% if form.password.errors %}
+                <div class="form-error">{{ form.password.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="id_password_confirm">
+                {{ form.password_confirm.label }}
+            </label>
+            {{ form.password_confirm }}
+            {% if form.password_confirm.errors %}
+                <div class="form-error">{{ form.password_confirm.errors.0 }}</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- PERMISSÕES DE CONFIGURAÇÃO -->
+    <div class="form-section">
+        <div class="form-section-title">
+            <span>⚙️</span>
+            <span>{% trans "Permissões de Configuração" %}</span>
+        </div>
+        
+        <div class="form-check">
+            {{ form.can_configure_ad }}
+            <label class="form-check-label" for="id_can_configure_ad">
+                {{ form.can_configure_ad.label }}
+            </label>
+        </div>
+
+        <div class="form-check">
+            {{ form.can_configure_smtp }}
+            <label class="form-check-label" for="id_can_configure_smtp">
+                {{ form.can_configure_smtp.label }}
+            </label>
+        </div>
+        <div class="form-help" style="margin-left: 30px;">
+            {{ form.can_configure_smtp.help_text }}
+        </div>
+    </div>
+
+    <!-- PERMISSÕES DE USUÁRIOS -->
+    <div class="form-section">
+        <div class="form-section-title">
+            <span>👥</span>
+            <span>{% trans "Permissões de Usuários" %}</span>
+        </div>
+        
+        <div class="permissions-grid">
+            <div class="form-check">
+                {{ form.can_sync_ad_groups }}
+                <label class="form-check-label" for="id_can_sync_ad_groups">
+                    {{ form.can_sync_ad_groups.label }}
+                </label>
+            </div>
+
+            <div class="form-check">
+                {{ form.can_assign_permissions }}
+                <label class="form-check-label" for="id_can_assign_permissions">
+                    {{ form.can_assign_permissions.label }}
+                </label>
+            </div>
+
+            <div class="form-check">
+                {{ form.can_manage_local_users }}
+                <label class="form-check-label" for="id_can_manage_local_users">
+                    {{ form.can_manage_local_users.label }}
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- PERMISSÕES DE MÓDULOS -->
+    <div class="form-section">
+        <div class="form-section-title">
+            <span>📦</span>
+            <span>{% trans "Permissões de Módulos" %}</span>
+        </div>
+        
+        <div class="permissions-grid">
+            <div class="form-check">
+                {{ form.can_manage_suppliers }}
+                <label class="form-check-label" for="id_can_manage_suppliers">
+                    {{ form.can_manage_suppliers.label }}
+                </label>
+            </div>
+
+            <div class="form-check">
+                {{ form.can_manage_contracts }}
+                <label class="form-check-label" for="id_can_manage_contracts">
+                    {{ form.can_manage_contracts.label }}
+                </label>
+            </div>
+
+            <div class="form-check">
+                {{ form.can_manage_quality }}
+                <label class="form-check-label" for="id_can_manage_quality">
+                    {{ form.can_manage_quality.label }}
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- AÇÕES -->
+    <div class="form-actions">
+        <a href="{% url 'access_control:global_admins_list' %}" class="btn btn-secondary">
+            {% trans "Cancelar" %}
+        </a>
+        <button type="submit" class="btn btn-primary">
+            <span>✓</span>
+            <span>{% trans "Criar País e Admin" %}</span>
+        </button>
+    </div>
+</form>
+{% endblock %}
+```
+
+---

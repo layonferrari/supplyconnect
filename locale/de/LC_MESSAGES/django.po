@@ -1,0 +1,235 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-10-28 16:13-0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: .\accounts\templates\accounts\collaborator_login.html:8
+msgid "Login Colaborador"
+msgstr "Mitarbeiter-Anmeldung"
+
+#: .\accounts\templates\accounts\collaborator_login.html:156
+msgid "Área do Colaborador"
+msgstr "Mitarbeiterbereich"
+
+#: .\accounts\templates\accounts\collaborator_login.html:162
+msgid "Em Desenvolvimento"
+msgstr "In Entwicklung"
+
+#: .\accounts\templates\accounts\collaborator_login.html:163
+msgid ""
+"O login para colaboradores está sendo construído com integração ao Active "
+"Directory."
+msgstr ""
+
+#: .\accounts\templates\accounts\collaborator_login.html:166
+msgid "Autenticação via Active Directory por país"
+msgstr "Authentifizierung über Active Directory nach Land"
+
+#: .\accounts\templates\accounts\collaborator_login.html:167
+msgid "Acesso seguro com credenciais corporativas"
+msgstr "Sicherer Zugang mit Unternehmensanmeldedaten"
+
+#: .\accounts\templates\accounts\collaborator_login.html:168
+msgid "Sincronização automática de permissões"
+msgstr "Automatische Synchronisierung von Berechtigungen"
+
+#: .\accounts\templates\accounts\collaborator_login.html:169
+msgid "Suporte multi-idioma"
+msgstr "Mehrsprachige Unterstützung"
+
+#: .\accounts\templates\accounts\collaborator_login.html:174
+msgid "Países suportados"
+msgstr "Unterstützte Länder"
+
+#: .\accounts\templates\accounts\collaborator_login.html:175
+msgid "Brasil, Argentina, México, Alemanha, Itália, China e Estados Unidos"
+msgstr "Brasilien, Argentinien, Mexiko, Deutschland, Italien, China und USA"
+
+#: .\accounts\templates\accounts\collaborator_login.html:178
+msgid "Voltar à Página Inicial"
+msgstr "Zurück zur Startseite"
+
+#: .\accounts\templates\accounts\collaborator_login.html:181
+#: .\accounts\templates\accounts\forbidden.html:109
+#: .\accounts\templates\accounts\partner_login.html:191
+#: .\accounts\templates\home_choice.html:131
+msgid "Idioma"
+msgstr "Sprache"
+
+#: .\accounts\templates\accounts\forbidden.html:8
+#: .\accounts\templates\accounts\forbidden.html:99
+msgid "Acesso Negado"
+msgstr "Zugriff verweigert"
+
+#: .\accounts\templates\accounts\forbidden.html:100
+msgid "Você não tem permissão para acessar esta página."
+msgstr "Sie haben keine Berechtigung, auf diese Seite zuzugreifen."
+
+#: .\accounts\templates\accounts\forbidden.html:101
+msgid "Esta área é exclusiva para fornecedores autorizados."
+msgstr "Dieser Bereich ist ausschließlich für autorisierte Lieferanten."
+
+#: .\accounts\templates\accounts\forbidden.html:104
+msgid "Página Inicial"
+msgstr "Startseite"
+
+#: .\accounts\templates\accounts\forbidden.html:105
+msgid "Fazer Login"
+msgstr "Anmelden"
+
+#: .\accounts\templates\accounts\partner_login.html:8
+msgid "Login Parceiro"
+msgstr "Partner-Anmeldung"
+
+#: .\accounts\templates\accounts\partner_login.html:156
+msgid "Portal do Parceiro"
+msgstr "Partner-Portal"
+
+#: .\accounts\templates\accounts\partner_login.html:174
+msgid "E-mail"
+msgstr "E-Mail"
+
+#: .\accounts\templates\accounts\partner_login.html:179
+msgid "Senha"
+msgstr "Passwort"
+
+#: .\accounts\templates\accounts\partner_login.html:183
+msgid "Entrar"
+msgstr "Anmelden"
+
+#: .\accounts\templates\accounts\partner_login.html:187
+msgid "Voltar"
+msgstr "Zurück"
+
+#: .\accounts\templates\accounts\supplier_dashboard.html:8
+#: .\accounts\templates\accounts\supplier_dashboard.html:153
+msgid "Portal do Fornecedor"
+msgstr "Lieferanten-Portal"
+
+#: .\accounts\templates\accounts\supplier_dashboard.html:158
+#: .\accounts\templates\accounts\user_settings.html:8
+#: .\accounts\templates\accounts\user_settings.html:141
+#, fuzzy
+#| msgid "Notificações"
+msgid "Configurações"
+msgstr "Benachrichtigungen"
+
+#: .\accounts\templates\accounts\supplier_dashboard.html:159
+msgid "Sair"
+msgstr "Abmelden"
+
+#: .\accounts\templates\accounts\supplier_dashboard.html:166
+msgid "Meus Contratos"
+msgstr "Meine Verträge"
+
+#: .\accounts\templates\accounts\supplier_dashboard.html:167
+msgid "Visualize e gerencie seus contratos ativos com a ILPEA."
+msgstr "Sehen und verwalten Sie Ihre aktiven Verträge mit ILPEA."
+
+#: .\accounts\templates\accounts\supplier_dashboard.html:168
+#: .\accounts\templates\accounts\supplier_dashboard.html:174
+#: .\accounts\templates\accounts\supplier_dashboard.html:180
+#: .\accounts\templates\accounts\supplier_dashboard.html:186
+msgid "Em breve"
+msgstr "Demnächst"
+
+#: .\accounts\templates\accounts\supplier_dashboard.html:172
+msgid "Pendências"
+msgstr "Ausstehend"
+
+#: .\accounts\templates\accounts\supplier_dashboard.html:173
+msgid "Acompanhe ações pendentes e prazos importantes."
+msgstr "Verfolgen Sie ausstehende Aktionen und wichtige Fristen."
+
+#: .\accounts\templates\accounts\supplier_dashboard.html:178
+msgid "Notificações"
+msgstr "Benachrichtigungen"
+
+#: .\accounts\templates\accounts\supplier_dashboard.html:179
+msgid "Receba atualizações sobre suas interações com as filiais."
+msgstr "Erhalten Sie Updates über Ihre Interaktionen mit Niederlassungen."
+
+#: .\accounts\templates\accounts\supplier_dashboard.html:184
+msgid "Relatórios"
+msgstr "Berichte"
+
+#: .\accounts\templates\accounts\supplier_dashboard.html:185
+msgid "Acesse relatórios de desempenho e qualidade."
+msgstr "Greifen Sie auf Leistungs- und Qualitätsberichte zu."
+
+#: .\accounts\templates\accounts\supplier_dashboard.html:191
+msgid "Estamos construindo algo incrível!"
+msgstr "Wir bauen etwas Unglaubliches!"
+
+#: .\accounts\templates\accounts\supplier_dashboard.html:192
+msgid ""
+"Novas funcionalidades serão adicionadas em breve para melhorar sua "
+"experiência."
+msgstr ""
+
+#: .\accounts\templates\accounts\supplier_dashboard.html:196
+msgid "Todos os direitos reservados"
+msgstr "Alle Rechte vorbehalten"
+
+#: .\accounts\templates\accounts\user_settings.html:142
+msgid "Personalize sua experiência no sistema"
+msgstr ""
+
+#: .\accounts\templates\accounts\user_settings.html:159
+msgid "Idioma Preferido"
+msgstr ""
+
+#: .\accounts\templates\accounts\user_settings.html:163
+msgid ""
+"Escolha o idioma que será usado em todo o sistema. Esta configuração será "
+"salva na sua conta."
+msgstr ""
+
+#: .\accounts\templates\accounts\user_settings.html:169
+msgid "Salvar Configurações"
+msgstr ""
+
+#: .\accounts\templates\accounts\user_settings.html:172
+msgid "Cancelar"
+msgstr ""
+
+#: .\accounts\templates\accounts\user_settings.html:179
+msgid "Dica"
+msgstr ""
+
+#: .\accounts\templates\accounts\user_settings.html:180
+msgid ""
+"Após salvar, todas as páginas do sistema serão automaticamente exibidas no "
+"idioma escolhido."
+msgstr ""
+
+#: .\accounts\templates\home_choice.html:8
+msgid "Ilpea SupplyConnect"
+msgstr "Ilpea SupplyConnect"
+
+#: .\accounts\templates\home_choice.html:118
+msgid "Bem-vindo ao Portal"
+msgstr "Willkommen im Portal"
+
+#: .\accounts\templates\home_choice.html:123
+msgid "Sou Parceiro"
+msgstr "Ich bin Partner"
+
+#: .\accounts\templates\home_choice.html:126
+msgid "Sou Colaborador"
+msgstr "Ich bin Mitarbeiter"

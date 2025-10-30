@@ -2,7 +2,8 @@ from django.shortcuts import render, redirect
 # Comentado para testes sem autenticação
 # from django.contrib.auth.decorators import login_required, user_passes_test
 from .models import LdapConfig, SmtpConfig, SslConfig
-from .forms import LdapConfigForm, SmtpConfigForm, SslConfigForm
+from .forms import LdapDirectoryForm, SmtpConfigurationForm, SslConfigForm
+
 
 # Comentado para desativar verificação de admin_local temporariamente
 # def admin_only(user):

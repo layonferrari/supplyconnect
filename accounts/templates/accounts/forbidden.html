@@ -1,0 +1,127 @@
+{% load static %}
+{% load i18n %}
+<!doctype html>
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% trans "Acesso Negado" %} - Ilpea SupplyConnect</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .error-container {
+            text-align: center;
+            background: #1e293b;
+            padding: 50px 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            max-width: 500px;
+            border: 2px solid #ef4444;
+        }
+        .error-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #ef4444;
+            font-size: 32px;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+        p {
+            color: #cbd5e1;
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        .buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #0091DA;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            background: #005B9A;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 145, 218, 0.4);
+        }
+        .btn-secondary {
+            background: #475569;
+        }
+        .btn-secondary:hover {
+            background: #334155;
+        }
+        .language-selector {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #334155;
+        }
+        .language-selector p {
+            color: #64748b;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+        .language-selector select {
+            padding: 6px 10px;
+            border: 2px solid #334155;
+            border-radius: 6px;
+            background: #0f172a;
+            color: #0091DA;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-icon">🚫</div>
+        <h1>{% trans "Acesso Negado" %}</h1>
+        <p>{% trans "Você não tem permissão para acessar esta página." %}</p>
+        <p>{% trans "Esta área é exclusiva para fornecedores autorizados." %}</p>
+        
+        <div class="buttons">
+            <a href="{% url 'accounts:home_choice' %}" class="btn">{% trans "Página Inicial" %}</a>
+            <a href="{% url 'accounts:partner_login' %}" class="btn btn-secondary">{% trans "Fazer Login" %}</a>
+        </div>
+
+        <div class="language-selector">
+            <p>🌍 {% trans "Idioma" %}:</p>
+            <form action="{% url 'set_language' %}" method="post">
+                {% csrf_token %}
+                <input name="next" type="hidden" value="{{ request.path }}">
+                <select name="language" onchange="this.form.submit()">
+                    {% get_current_language as LANGUAGE_CODE %}
+                    {% get_available_languages as LANGUAGES %}
+                    {% get_language_info_list for LANGUAGES as languages %}
+                    {% for language in languages %}
+                        <option value="{{ language.code }}"{% if language.code == LANGUAGE_CODE %} selected{% endif %}>
+                            {{ language.name_local }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

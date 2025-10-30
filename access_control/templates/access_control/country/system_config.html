@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+
+<style>
+body {
+    background-color: #f5f7fb;
+    font-family: 'Inter', sans-serif;
+}
+.card {
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.06);
+    transition: all 0.3s ease-in-out;
+}
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+}
+.card-header {
+    background: linear-gradient(90deg, #004aad, #007bff);
+    color: white;
+    font-weight: 600;
+    font-size: 1.05rem;
+    border-radius: 16px 16px 0 0 !important;
+}
+label { font-weight: 500; }
+.btn { border-radius: 8px; font-weight: 500; }
+.form-control, .form-check-input { border-radius: 8px; }
+h3 { font-weight: 600; }
+.alert { border-radius: 8px; }
+</style>
+
+<div class="container py-5">
+    <h3 class="text-center mb-5 text-primary">⚙️ Configurações do Sistema</h3>
+
+    <!-- BLOCO SMTP -->
+    <div class="card mb-5">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <span>✉️ Configuração de E-mail (SMTP)</span>
+            {% if smtp_locked %}
+                <span class="badge bg-warning text-dark">Bloqueado (Global)</span>
+            {% endif %}
+        </div>
+        <div class="card-body p-4">
+            {% if smtp_locked %}
+                <div class="alert alert-warning">
+                    🔒 Este país está utilizando a configuração SMTP Global. Alterações não permitidas.
+                </div>
+            {% endif %}
+            <form method="post">
+                {% csrf_token %}
+                {{ smtp_form.non_field_errors }}
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label>Servidor SMTP</label>
+                        {{ smtp_form.host }}
+                    </div>
+                    <div class="col-md-2">
+                        <label>Porta</label>
+                        {{ smtp_form.port }}
+                    </div>
+                    <div class="col-md-4">
+                        <label>E-mail de Envio</label>
+                        {{ smtp_form.username }}
+                    </div>
+                    <div class="col-md-6">
+                        <label>Senha</label>
+                        {{ smtp_form.password }}
+                    </div>
+                    <div class="col-md-3 form-check mt-4">
+                        {{ smtp_form.use_ssl }} <label class="form-check-label">Usar SSL</label>
+                    </div>
+                    <div class="col-md-3 form-check mt-4">
+                        {{ smtp_form.use_tls }} <label class="form-check-label">Usar TLS</label>
+                    </div>
+                </div>
+
+                <div class="text-end mt-4">
+                    <button type="submit" class="btn btn-primary px-4 py-2"
+                            {% if smtp_locked %}disabled{% endif %}>
+                        💾 Salvar Configurações
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- BLOCO AD -->
+    <div class="card">
+        <div class="card-header">🔐 Configuração do Active Directory (AD)</div>
+        <div class="card-body p-4">
+            <form method="post" id="form-ad" action="{% url 'access_control:country_ad_config' %}">
+                {% csrf_token %}
+                {{ ldap_form.non_field_errors }}
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label>Servidor LDAP</label>
+                        {{ ldap_form.ldap_server }}
+                    </div>
+                    <div class="col-md-6">
+                        <label>Porta</label>
+                        {{ ldap_form.ldap_port }}
+                    </div>
+                    <div class="col-md-6">
+                        <label>Usuário de Bind</label>
+                        {{ ldap_form.bind_user_dn }}
+                    </div>
+                    <div class="col-md-6">
+                        <label>Senha</label>
+                        {{ ldap_form.bind_password }}
+                    </div>
+                    <div class="col-md-12">
+                        <label>Base DN</label>
+                        {{ ldap_form.base_dn }}
+                    </div>
+                </div>
+
+                <div class="text-end mt-4">
+                    <button type="button" id="btn-test-ldap" class="btn btn-outline-secondary me-2">
+                        🔄 Testar Conexão AD
+                    </button>
+                    <button type="submit" class="btn btn-success px-4 py-2">
+                        💾 Salvar Configurações
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('btn-test-ldap').addEventListener('click', async () => {
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const ldap_server = document.getElementById('id_ldap_server').value;
+    const ldap_port = document.getElementById('id_ldap_port').value;
+    const bind_user_dn = document.getElementById('id_bind_user_dn').value;
+    const bind_password = document.getElementById('id_bind_password').value;
+    const base_dn = document.getElementById('id_base_dn').value;
+
+    const response = await fetch("{% url 'access_control:test_ldap_connection' %}", {
+        method: "POST",
+        headers: {"X-CSRFToken": csrftoken},
+        body: new URLSearchParams({ldap_server, ldap_port, bind_user_dn, bind_password, base_dn})
+    });
+    const result = await response.json();
+    alert(result.message);
+});
+</script>
+
+{% endblock %}

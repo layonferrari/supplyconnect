@@ -1,0 +1,352 @@
+{% extends "access_control/base/panel_base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Remover Active Directory" %}{% endblock %}
+{% block page_title %}{% trans "Remover Active Directory" %}{% endblock %}
+
+{% block breadcrumb %}
+    <a href="{% url 'access_control:home' %}">{% trans "Início" %}</a>
+    <span>/</span>
+    <a href="{% url 'access_control:country_dashboard' %}">{% trans "Dashboard" %}</a>
+    <span>/</span>
+    <span>{% trans "Remover AD" %}</span>
+{% endblock %}
+
+{% block content %}
+<!-- Estilos personalizados para layout claro -->
+<style>
+    /* Layout claro */
+    body {
+        background: #f0f4f8 !important;
+    }
+    
+    .main-content {
+        background: #f0f4f8 !important;
+    }
+    
+    /* Card de confirmação */
+    .confirm-card {
+        background: white;
+        border-radius: 12px;
+        padding: 2.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        margin: 0 auto;
+        max-width: 700px;
+        border: 1px solid #e2e8f0;
+    }
+    
+    /* Header de aviso */
+    .danger-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding-bottom: 2rem;
+        border-bottom: 2px solid #fed7d7;
+    }
+    
+    .danger-icon {
+        font-size: 5rem;
+        margin-bottom: 1rem;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+    }
+    
+    .danger-header h2 {
+        color: #c53030;
+        margin-bottom: 0.5rem;
+        font-size: 1.75rem;
+    }
+    
+    .danger-header p {
+        color: #742a2a;
+        font-size: 1rem;
+        margin: 0;
+    }
+    
+    /* Alerta de aviso */
+    .warning-alert {
+        background: #fffaf0;
+        border-left: 4px solid #dd6b20;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+    }
+    
+    .warning-alert-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .warning-alert-icon {
+        font-size: 2rem;
+        flex-shrink: 0;
+    }
+    
+    .warning-alert-header h3 {
+        margin: 0;
+        color: #7c2d12;
+        font-size: 1.25rem;
+    }
+    
+    .warning-alert ul {
+        margin: 0;
+        padding-left: 1.5rem;
+        color: #7c2d12;
+        line-height: 1.8;
+    }
+    
+    .warning-alert ul li {
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Detalhes do AD */
+    .ad-details-box {
+        background: #f7fafc;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .ad-details-title {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #cbd5e0;
+    }
+    
+    .ad-details-title h4 {
+        margin: 0;
+        color: #2d3748;
+        font-size: 1.1rem;
+    }
+    
+    .ad-detail-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .ad-detail-item:last-child {
+        border-bottom: none;
+    }
+    
+    .ad-detail-label {
+        font-weight: 600;
+        color: #4a5568;
+    }
+    
+    .ad-detail-value {
+        color: #2d3748;
+        font-family: 'Courier New', monospace;
+        text-align: right;
+    }
+    
+    /* Checkbox de confirmação */
+    .confirm-checkbox {
+        background: #fff5f5;
+        border: 2px solid #feb2b2;
+        border-radius: 8px;
+        padding: 1.25rem;
+        margin-bottom: 2rem;
+    }
+    
+    .confirm-checkbox label {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        cursor: pointer;
+        margin: 0;
+        color: #742a2a;
+        font-weight: 600;
+    }
+    
+    .confirm-checkbox input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+    }
+    
+    /* Botões */
+    .button-group {
+        display: flex;
+        gap: 1rem;
+        padding-top: 1.5rem;
+        border-top: 2px solid #e2e8f0;
+    }
+    
+    .btn-danger {
+        background: linear-gradient(135deg, #fc8181 0%, #f56565 100%);
+        color: white;
+        border: none;
+        padding: 0.875rem 2.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        box-shadow: 0 4px 12px rgba(245, 101, 101, 0.3);
+        flex: 1;
+        justify-content: center;
+    }
+    
+    .btn-danger:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(245, 101, 101, 0.4);
+    }
+    
+    .btn-danger:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    .btn-secondary {
+        background: white;
+        color: #718096;
+        border: 2px solid #e2e8f0;
+        padding: 0.875rem 2rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        justify-content: center;
+    }
+    
+    .btn-secondary:hover {
+        background: #f7fafc;
+        border-color: #cbd5e0;
+        transform: translateY(-2px);
+    }
+</style>
+
+<!-- Card de confirmação -->
+<div class="confirm-card">
+    <!-- Header de aviso -->
+    <div class="danger-header">
+        <div class="danger-icon">⚠️</div>
+        <h2>{% trans "Remover Active Directory" %}</h2>
+        <p>{% trans "Esta ação é irreversível e afetará o sistema imediatamente" %}</p>
+    </div>
+    
+    <!-- Alerta de consequências -->
+    <div class="warning-alert">
+        <div class="warning-alert-header">
+            <span class="warning-alert-icon">🚨</span>
+            <h3>{% trans "Consequências da Remoção" %}</h3>
+        </div>
+        <ul>
+            <li>{% trans "Os colaboradores não poderão mais fazer login usando credenciais do Active Directory" %}</li>
+            <li>{% trans "Apenas contas locais criadas manualmente continuarão funcionando" %}</li>
+            <li>{% trans "A sincronização de grupos do AD será interrompida" %}</li>
+            <li>{% trans "Você precisará configurar um novo AD para reativar o login corporativo" %}</li>
+        </ul>
+    </div>
+    
+    <!-- Detalhes do AD que será removido -->
+    <div class="ad-details-box">
+        <div class="ad-details-title">
+            <span>🔐</span>
+            <h4>{% trans "Configuração que será removida:" %}</h4>
+        </div>
+        
+        <div class="ad-detail-item">
+            <span class="ad-detail-label">{% trans "Servidor:" %}</span>
+            <span class="ad-detail-value">{{ ad_config.server }}</span>
+        </div>
+        
+        <div class="ad-detail-item">
+            <span class="ad-detail-label">{% trans "Porta:" %}</span>
+            <span class="ad-detail-value">{{ ad_config.port }}</span>
+        </div>
+        
+        <div class="ad-detail-item">
+            <span class="ad-detail-label">{% trans "SSL/TLS:" %}</span>
+            <span class="ad-detail-value">
+                {% if ad_config.use_ssl %}
+                    ✓ {% trans "Habilitado" %}
+                {% else %}
+                    ✗ {% trans "Desabilitado" %}
+                {% endif %}
+            </span>
+        </div>
+        
+        <div class="ad-detail-item">
+            <span class="ad-detail-label">{% trans "Base DN:" %}</span>
+            <span class="ad-detail-value">{{ ad_config.base_dn }}</span>
+        </div>
+        
+        <div class="ad-detail-item">
+            <span class="ad-detail-label">{% trans "Status:" %}</span>
+            <span class="ad-detail-value">
+                {% if ad_config.is_active %}
+                    <span style="color: #48bb78; font-weight: bold;">✓ {% trans "Ativo" %}</span>
+                {% else %}
+                    <span style="color: #fc8181; font-weight: bold;">✗ {% trans "Inativo" %}</span>
+                {% endif %}
+            </span>
+        </div>
+    </div>
+    
+    <!-- Formulário de confirmação -->
+    <form method="post" id="deleteForm">
+        {% csrf_token %}
+        
+        <!-- Checkbox de confirmação -->
+        <div class="confirm-checkbox">
+            <label>
+                <input type="checkbox" id="confirmDelete" required>
+                <span>{% trans "Sim, entendo as consequências e desejo remover esta configuração" %}</span>
+            </label>
+        </div>
+        
+        <!-- Botões de ação -->
+        <div class="button-group">
+            <a href="{% url 'access_control:country_dashboard' %}" class="btn-secondary">
+                ← {% trans "Cancelar" %}
+            </a>
+            <button type="submit" class="btn-danger" id="deleteButton" disabled>
+                🗑️ {% trans "Confirmar Remoção" %}
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Script para habilitar botão apenas quando checkbox marcado -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const checkbox = document.getElementById('confirmDelete');
+    const deleteButton = document.getElementById('deleteButton');
+    const deleteForm = document.getElementById('deleteForm');
+    
+    // Habilitar/desabilitar botão baseado no checkbox
+    checkbox.addEventListener('change', function() {
+        deleteButton.disabled = !this.checked;
+    });
+    
+    // Confirmação adicional ao submeter
+    deleteForm.addEventListener('submit', function(e) {
+        if (!confirm('{% trans "Tem CERTEZA ABSOLUTA que deseja remover o Active Directory? Esta ação não pode ser desfeita!" %}')) {
+            e.preventDefault();
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}
