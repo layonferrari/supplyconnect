@@ -1,0 +1,136 @@
+{% extends "access_control/base/panel_base.html" %}
+{% load i18n %}
+
+{% block title %}Configuração Padrão do Sistema{% endblock %}
+{% block page_title %}Configuração Padrão do Sistema{% endblock %}
+
+{% block content %}
+<div class="container mx-auto p-6">
+    
+    <h1 class="text-2xl font-bold mb-4">⚙️ Configuração Padrão do Sistema</h1>
+    <p class="text-gray-600 mb-6">Configure AD e SMTP globais que serão usados pelos países</p>
+
+    <!-- Info -->
+    <div class="grid grid-cols-2 gap-4 mb-6">
+        <div class="bg-blue-50 p-4 rounded">
+            <div class="font-bold">🔐 AD Padrão</div>
+            <div class="text-sm">{{ countries_using_ad_default }} país(es) usando</div>
+        </div>
+        <div class="bg-green-50 p-4 rounded">
+            <div class="font-bold">📧 SMTP Padrão</div>
+            <div class="text-sm">{{ countries_using_smtp_default }} país(es) usando</div>
+        </div>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        
+        <!-- AD -->
+        <div class="bg-white border rounded p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4">🔐 Active Directory Padrão</h2>
+            
+            <div class="mb-4">
+                <label class="flex items-center">
+                    {{ form.ad_enabled }}
+                    <span class="ml-2">Ativar AD Padrão</span>
+                </label>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label>Servidor</label>
+                    {{ form.ad_server }}
+                </div>
+                <div>
+                    <label>Porta</label>
+                    {{ form.ad_port }}
+                </div>
+                <div class="col-span-2">
+                    <label class="flex items-center">
+                        {{ form.ad_use_ssl }}
+                        <span class="ml-2">Usar SSL</span>
+                    </label>
+                    <label class="flex items-center">
+                        {{ form.ad_use_tls }}
+                        <span class="ml-2">Usar TLS</span>
+                    </label>
+                </div>
+                <div class="col-span-2">
+                    <label>Bind User DN</label>
+                    {{ form.ad_bind_user_dn }}
+                </div>
+                <div class="col-span-2">
+                    <label>Senha Bind</label>
+                    {{ form.ad_bind_password_input }}
+                    <p class="text-xs text-gray-500">Deixe vazio para manter atual</p>
+                </div>
+                <div class="col-span-2">
+                    <label>Base DN</label>
+                    {{ form.ad_base_dn }}
+                </div>
+                <div class="col-span-2">
+                    <label>Base de Busca</label>
+                    {{ form.ad_user_search_base }}
+                </div>
+                <div class="col-span-2">
+                    <label>Filtro LDAP</label>
+                    {{ form.ad_search_filter }}
+                </div>
+            </div>
+        </div>
+
+        <!-- SMTP -->
+        <div class="bg-white border rounded p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4">📧 SMTP Padrão</h2>
+            
+            <div class="mb-4">
+                <label class="flex items-center">
+                    {{ form.smtp_enabled }}
+                    <span class="ml-2">Ativar SMTP Padrão</span>
+                </label>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label>Servidor</label>
+                    {{ form.smtp_host }}
+                </div>
+                <div>
+                    <label>Porta</label>
+                    {{ form.smtp_port }}
+                </div>
+                <div class="col-span-2">
+                    <label class="flex items-center">
+                        {{ form.smtp_use_tls }}
+                        <span class="ml-2">Usar TLS</span>
+                    </label>
+                </div>
+                <div class="col-span-2">
+                    <label>Usuário</label>
+                    {{ form.smtp_username }}
+                </div>
+                <div class="col-span-2">
+                    <label>Senha</label>
+                    {{ form.smtp_password_input }}
+                    <p class="text-xs text-gray-500">Deixe vazio para manter atual</p>
+                </div>
+                <div class="col-span-2">
+                    <label>Email Remetente</label>
+                    {{ form.smtp_from_email }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Botões -->
+        <div class="flex gap-3">
+            <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                💾 Salvar
+            </button>
+            <a href="{% url 'access_control:global_dashboard' %}" class="px-6 py-2 bg-gray-200 rounded hover:bg-gray-300">
+                ← Voltar
+            </a>
+        </div>
+    </form>
+
+</div>
+{% endblock %}

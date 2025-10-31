@@ -102,7 +102,7 @@ h3 { font-weight: 600; }
                     </div>
                     <div class="col-md-6">
                         <label>Porta</label>
-                        {{ ldap_form.ldap_port }}
+                        {{ ldap_form.port }}
                     </div>
                     <div class="col-md-6">
                         <label>Usuário de Bind</label>
@@ -132,21 +132,59 @@ h3 { font-weight: 600; }
 </div>
 
 <script>
-document.getElementById('btn-test-ldap').addEventListener('click', async () => {
-    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-    const ldap_server = document.getElementById('id_ldap_server').value;
-    const ldap_port = document.getElementById('id_ldap_port').value;
-    const bind_user_dn = document.getElementById('id_bind_user_dn').value;
-    const bind_password = document.getElementById('id_bind_password').value;
-    const base_dn = document.getElementById('id_base_dn').value;
-
-    const response = await fetch("{% url 'access_control:test_ldap_connection' %}", {
-        method: "POST",
-        headers: {"X-CSRFToken": csrftoken},
-        body: new URLSearchParams({ldap_server, ldap_port, bind_user_dn, bind_password, base_dn})
+document.getElementById('btn-test-ldap').addEventListener('click', async function() {
+    console.log('🔘 Botão clicado!');
+    
+    // CORREÇÃO: Buscar campos DENTRO do form AD (#form-ad)
+    const formAD = document.getElementById('form-ad');
+    const csrftoken = formAD.querySelector('[name=csrfmiddlewaretoken]');
+    
+    const ldap_server = formAD.querySelector('[name="ldap_server"]');
+    const port = formAD.querySelector('[name="port"]');
+    const bind_user_dn = formAD.querySelector('[name="bind_user_dn"]');
+    const bind_password = formAD.querySelector('[name="bind_password"]');
+    const base_dn = formAD.querySelector('[name="base_dn"]');
+    
+    console.log('Campos encontrados:', {
+        ldap_server: ldap_server ? ldap_server.value : 'NÃO ENCONTRADO',
+        port: port ? port.value : 'NÃO ENCONTRADO',
+        bind_user_dn: bind_user_dn ? bind_user_dn.value : 'NÃO ENCONTRADO',
+        bind_password: bind_password ? '***' : 'NÃO ENCONTRADO',
+        base_dn: base_dn ? base_dn.value : 'NÃO ENCONTRADO'
     });
-    const result = await response.json();
-    alert(result.message);
+    
+    if (!ldap_server || !bind_user_dn) {
+        alert('⚠️ Preencha pelo menos Servidor e Usuário!');
+        return;
+    }
+    
+    const data = {
+        ldap_server: ldap_server.value,
+        port: port ? port.value : '389',
+        bind_user_dn: bind_user_dn.value,
+        bind_password: bind_password ? bind_password.value : '',
+        base_dn: base_dn ? base_dn.value : ''
+    };
+    
+    console.log('Enviando teste...');
+    
+    try {
+        const response = await fetch("{% url 'access_control:test_ldap_connection' %}", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": csrftoken.value,
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: new URLSearchParams(data)
+        });
+        
+        const result = await response.json();
+        console.log('✅ Resultado:', result);
+        alert(result.message);
+    } catch (error) {
+        console.error('❌ Erro:', error);
+        alert('❌ Erro ao testar: ' + error);
+    }
 });
 </script>
 

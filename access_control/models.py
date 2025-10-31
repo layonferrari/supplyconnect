@@ -158,6 +158,14 @@ class CountryPermission(models.Model):
     Permissões específicas de um Admin de País.
     Define o que cada admin pode fazer em seu país.
     """
+    
+    # Choices para tipo de configuração
+    CONFIG_TYPE_CHOICES = [
+        ('own', 'Configuração Própria'),
+        ('manual', 'Configuração Manual (definida pelo Global Admin)'),
+        ('system_default', 'Usar Padrão do Sistema'),
+    ]
+    
     admin_profile = models.OneToOneField(
         AdminProfile,
         on_delete=models.CASCADE,
@@ -165,15 +173,32 @@ class CountryPermission(models.Model):
         verbose_name='Perfil de Admin'
     )
     
-    # Permissões de configuração
+    # Permissões de configuração AD
     can_configure_ad = models.BooleanField(
         default=False,
         verbose_name='Pode Configurar Active Directory'
     )
     
+    ad_config_type = models.CharField(
+        max_length=20,
+        choices=CONFIG_TYPE_CHOICES,
+        default='own',
+        verbose_name='Tipo de Configuração AD',
+        help_text='Se "Pode Configurar AD" = False, define qual configuração usar'
+    )
+    
+    # Permissões de configuração SMTP
     can_configure_smtp = models.BooleanField(
         default=False,
         verbose_name='Pode Configurar SMTP'
+    )
+    
+    smtp_config_type = models.CharField(
+        max_length=20,
+        choices=CONFIG_TYPE_CHOICES,
+        default='own',
+        verbose_name='Tipo de Configuração SMTP',
+        help_text='Se "Pode Configurar SMTP" = False, define qual configuração usar'
     )
     
     # Permissões de usuários
@@ -374,3 +399,146 @@ class UserPermission(models.Model):
     def __str__(self):
         status = "✅" if self.is_granted else "❌"
         return f"{status} {self.user.get_full_name()} - {self.get_permission_code_display()}"
+
+
+class SystemDefaultConfig(models.Model):
+    """
+    Configurações padrão do sistema (AD e SMTP global).
+    Usado quando um país não pode configurar próprio e escolhe 'usar padrão do sistema'.
+    Deve ter apenas 1 registro no banco.
+    """
+    
+    # ===== CONFIGURAÇÕES AD PADRÃO =====
+    ad_enabled = models.BooleanField(
+        default=False,
+        verbose_name='AD Padrão Ativo',
+        help_text='Habilitar configuração AD padrão do sistema'
+    )
+    
+    ad_server = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name='Servidor AD',
+        help_text='Exemplo: ad.empresa.com'
+    )
+    
+    ad_port = models.IntegerField(
+        default=389,
+        verbose_name='Porta AD'
+    )
+    
+    ad_use_ssl = models.BooleanField(
+        default=False,
+        verbose_name='Usar SSL (LDAPS)'
+    )
+    
+    ad_use_tls = models.BooleanField(
+        default=False,
+        verbose_name='Usar START_TLS'
+    )
+    
+    ad_bind_user_dn = models.CharField(
+        max_length=500,
+        blank=True,
+        verbose_name='User DN para Bind',
+        help_text='Exemplo: CN=Admin,CN=Users,DC=empresa,DC=com'
+    )
+    
+    ad_bind_password = models.CharField(
+        max_length=500,
+        blank=True,
+        verbose_name='Senha do Bind (criptografada)'
+    )
+    
+    ad_base_dn = models.CharField(
+        max_length=500,
+        blank=True,
+        verbose_name='Base DN',
+        help_text='Exemplo: DC=empresa,DC=com'
+    )
+    
+    ad_user_search_base = models.CharField(
+        max_length=500,
+        blank=True,
+        verbose_name='Base de Busca de Usuários'
+    )
+    
+    ad_search_filter = models.CharField(
+        max_length=255,
+        blank=True,
+        default='(sAMAccountName={username})',
+        verbose_name='Filtro de Busca LDAP'
+    )
+    
+    # ===== CONFIGURAÇÕES SMTP PADRÃO =====
+    smtp_enabled = models.BooleanField(
+        default=False,
+        verbose_name='SMTP Padrão Ativo',
+        help_text='Habilitar configuração SMTP padrão do sistema'
+    )
+    
+    smtp_host = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name='Servidor SMTP',
+        help_text='Exemplo: smtp.gmail.com'
+    )
+    
+    smtp_port = models.IntegerField(
+        default=587,
+        verbose_name='Porta SMTP'
+    )
+    
+    smtp_use_tls = models.BooleanField(
+        default=True,
+        verbose_name='Usar TLS'
+    )
+    
+    smtp_username = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name='Usuário SMTP'
+    )
+    
+    smtp_password = models.CharField(
+        max_length=500,
+        blank=True,
+        verbose_name='Senha SMTP (criptografada)'
+    )
+    
+    smtp_from_email = models.EmailField(
+        blank=True,
+        verbose_name='Email Remetente',
+        help_text='Email que aparecerá como remetente'
+    )
+    
+    # ===== AUDITORIA =====
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Criado Em')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Atualizado Em')
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='system_configs_updated',
+        verbose_name='Atualizado Por'
+    )
+    
+    class Meta:
+        verbose_name = 'Configuração Padrão do Sistema'
+        verbose_name_plural = 'Configurações Padrão do Sistema'
+    
+    def __str__(self):
+        return "Configuração Padrão do Sistema"
+    
+    def save(self, *args, **kwargs):
+        """Garante que existe apenas 1 registro."""
+        if not self.pk and SystemDefaultConfig.objects.exists():
+            raise ValidationError('Já existe uma configuração padrão do sistema.')
+        super().save(*args, **kwargs)
+    
+    @classmethod
+    def get_config(cls):
+        """Retorna ou cria a configuração padrão."""
+        config, created = cls.objects.get_or_create(pk=1)
+        return config

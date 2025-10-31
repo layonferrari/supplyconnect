@@ -13,7 +13,7 @@ from .models import LdapDirectory, SmtpConfiguration, SslConfig
 class LdapDirectoryForm(forms.ModelForm):
     """
     Formulário simplificado de configuração do Active Directory.
-    Apenas os campos essenciais: Servidor, Usuário e Senha.
+    Apenas os campos essenciais: Servidor, Porta, Usuário, Senha e Base DN.
     """
     bind_password = forms.CharField(
         label="Senha AD",
@@ -26,19 +26,29 @@ class LdapDirectoryForm(forms.ModelForm):
 
     class Meta:
         model = LdapDirectory
-        fields = ['ldap_server', 'bind_user_dn']
+        fields = ['ldap_server', 'port', 'bind_user_dn', 'base_dn']
         labels = {
             'ldap_server': 'Servidor AD',
+            'port': 'Porta',
             'bind_user_dn': 'Usuário AD',
+            'base_dn': 'Base DN',
         }
         widgets = {
             'ldap_server': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Ex: S28BRDC2-16.BR.ILPEAORG.COM'
+                'placeholder': 'Ex: BR.ILPEAORG.COM'
+            }),
+            'port': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '389'
             }),
             'bind_user_dn': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Ex: CN=Admin,CN=Users,DC=BR,DC=ILPEAORG,DC=COM'
+                'placeholder': 'Ex: admin@BR.ILPEAORG.COM'
+            }),
+            'base_dn': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ex: DC=br,DC=ilpeaorg,DC=com'
             }),
         }
 

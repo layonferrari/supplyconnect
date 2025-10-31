@@ -2,7 +2,6 @@
 {% load i18n %}
 
 {% block title %}{% trans "Dashboard Admin Global" %}{% endblock %}
-
 {% block page_title %}{% trans "Dashboard Admin Global" %}{% endblock %}
 
 {% block breadcrumb %}
@@ -19,32 +18,20 @@
         </a>
     </li>
     <li class="sidebar-nav-item">
-        <a href="{% url 'access_control:global_countries' %}" class="sidebar-nav-link">
-            <span class="sidebar-nav-icon">🌍</span>
-            <span>{% trans "Países" %}</span>
+        <a href="{% url 'access_control:global_admin_create' %}" class="sidebar-nav-link">
+            <span class="sidebar-nav-icon">➕</span>
+            <span>{% trans "Criar Admin de País" %}</span>
         </a>
     </li>
     <li class="sidebar-nav-item">
-        <a href="{% url 'access_control:global_admins_list' %}" class="sidebar-nav-link">
-            <span class="sidebar-nav-icon">👥</span>
-            <span>{% trans "Admins de País" %}</span>
-        </a>
-    </li>
-    <li class="sidebar-nav-item">
-        <a href="{% url 'access_control:global_ad_config' %}" class="sidebar-nav-link">
-            <span class="sidebar-nav-icon">🔧</span>
-            <span>{% trans "Configurar AD Global" %}</span>
-        </a>
-    </li>
-    <li class="sidebar-nav-item">
-        <a href="{% url 'access_control:global_smtp_config' %}" class="sidebar-nav-link">
-            <span class="sidebar-nav-icon">📧</span>
-            <span>{% trans "Configurar SMTP Global" %}</span>
+        <a href="{% url 'access_control:system_default_config' %}" class="sidebar-nav-link">
+            <span class="sidebar-nav-icon">⚙️</span>
+            <span>{% trans "Configuração Padrão" %}</span>
         </a>
     </li>
     <li class="sidebar-nav-item">
         <a href="{% url 'admin:index' %}" class="sidebar-nav-link">
-            <span class="sidebar-nav-icon">⚙️</span>
+            <span class="sidebar-nav-icon">🔧</span>
             <span>{% trans "Django Admin" %}</span>
         </a>
     </li>
@@ -112,6 +99,8 @@
     .action-card:hover {
         transform: translateY(-3px);
         box-shadow: 0 8px 16px rgba(0, 145, 218, 0.4);
+        color: white;
+        text-decoration: none;
     }
 
     .action-icon {
@@ -128,90 +117,22 @@
         opacity: 0.9;
     }
 
-    .recent-admins-list {
-        list-style: none;
-    }
-
-    .admin-item {
-        background: rgba(0, 145, 218, 0.05);
+    .welcome-card {
+        background: white;
         border-radius: 12px;
-        padding: 15px;
-        margin-bottom: 10px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border: 1px solid var(--border-color);
+        padding: 30px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        text-align: center;
     }
 
-    .admin-info {
-        display: flex;
-        align-items: center;
-        gap: 15px;
+    .welcome-card h2 {
+        color: var(--primary-blue);
+        margin-bottom: 15px;
     }
 
-    .admin-avatar {
-        width: 45px;
-        height: 45px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, var(--dark-blue) 0%, var(--primary-blue) 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 18px;
-        color: white;
-        font-weight: bold;
-    }
-
-    .admin-details h4 {
-        font-size: 14px;
-        color: var(--text-light);
-        margin-bottom: 3px;
-    }
-
-    .admin-details p {
-        font-size: 12px;
+    .welcome-card p {
         color: var(--text-gray);
-    }
-
-    .admin-status {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        font-size: 12px;
-        padding: 5px 12px;
-        border-radius: 20px;
-        background: rgba(16, 185, 129, 0.1);
-        color: var(--success);
-    }
-
-    .warning-card {
-        background: rgba(245, 158, 11, 0.1);
-        border: 1px solid var(--warning);
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 20px;
-    }
-
-    .warning-card h3 {
-        color: var(--warning);
-        margin-bottom: 10px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .warning-list {
-        list-style: none;
-        color: var(--text-gray);
-    }
-
-    .warning-list li {
-        padding: 8px 0;
-        border-bottom: 1px solid rgba(245, 158, 11, 0.2);
-    }
-
-    .warning-list li:last-child {
-        border-bottom: none;
+        line-height: 1.6;
     }
 </style>
 
@@ -219,43 +140,28 @@
 <div class="stats-grid">
     <div class="stat-card">
         <div class="stat-icon">🌍</div>
-        <div class="stat-value">{{ total_countries }}</div>
+        <div class="stat-value">{{ total_countries|default:0 }}</div>
         <div class="stat-label">{% trans "Países Ativos" %}</div>
     </div>
 
     <div class="stat-card">
         <div class="stat-icon">👥</div>
-        <div class="stat-value">{{ total_admins }}</div>
+        <div class="stat-value">{{ total_admins|default:0 }}</div>
         <div class="stat-label">{% trans "Admins de País" %}</div>
     </div>
 
     <div class="stat-card">
         <div class="stat-icon">🔐</div>
-        <div class="stat-value">{{ total_ads }}</div>
+        <div class="stat-value">{{ total_ads|default:0 }}</div>
         <div class="stat-label">{% trans "ADs Configurados" %}</div>
     </div>
 
     <div class="stat-card">
         <div class="stat-icon">👤</div>
-        <div class="stat-value">{{ total_users }}</div>
+        <div class="stat-value">{{ total_users|default:0 }}</div>
         <div class="stat-label">{% trans "Usuários Ativos" %}</div>
     </div>
 </div>
-
-<!-- AVISOS -->
-{% if countries_without_ad %}
-<div class="warning-card">
-    <h3>
-        <span>⚠️</span>
-        <span>{% trans "Países Sem AD Configurado" %}</span>
-    </h3>
-    <ul class="warning-list">
-        {% for country_code in countries_without_ad %}
-            <li>{{ country_code }} - {% trans "Requer configuração de Active Directory" %}</li>
-        {% endfor %}
-    </ul>
-</div>
-{% endif %}
 
 <!-- AÇÕES RÁPIDAS -->
 <div class="quick-actions">
@@ -267,78 +173,28 @@
         </div>
     </a>
 
-    <a href="{% url 'access_control:global_ad_config' %}" class="action-card">
+    <a href="{% url 'access_control:system_default_config' %}" class="action-card">
+        <div class="action-icon">⚙️</div>
+        <div class="action-content">
+            <h3>{% trans "Configuração Padrão" %}</h3>
+            <p>{% trans "AD e SMTP padrão do sistema" %}</p>
+        </div>
+    </a>
+
+    <a href="{% url 'admin:index' %}" class="action-card">
         <div class="action-icon">🔧</div>
         <div class="action-content">
-            <h3>{% trans "Configurar AD Global" %}</h3>
-            <p>{% trans "Active Directory global" %}</p>
-        </div>
-    </a>
-
-    <a href="{% url 'access_control:global_smtp_config' %}" class="action-card">
-        <div class="action-icon">📧</div>
-        <div class="action-content">
-            <h3>{% trans "Configurar SMTP Global" %}</h3>
-            <p>{% trans "Servidor de e-mail global" %}</p>
-        </div>
-    </a>
-
-    <a href="{% url 'access_control:global_admins_list' %}" class="action-card">
-        <div class="action-icon">👥</div>
-        <div class="action-content">
-            <h3>{% trans "Ver Todos os Admins" %}</h3>
-            <p>{% trans "Gerenciar administradores" %}</p>
+            <h3>{% trans "Django Admin" %}</h3>
+            <p>{% trans "Administração completa" %}</p>
         </div>
     </a>
 </div>
 
-<!-- ADMINS RECENTES -->
-<div class="card">
-    <div class="card-header">
-        <h2 class="card-title">{% trans "Admins de País Recentes" %}</h2>
-        <a href="{% url 'access_control:global_admins_list' %}" class="btn btn-secondary">
-            {% trans "Ver Todos" %}
-        </a>
-    </div>
-
-    {% if recent_admins %}
-        <ul class="recent-admins-list">
-            {% for admin_profile in recent_admins %}
-            <li class="admin-item">
-                <div class="admin-info">
-                    <div class="admin-avatar">
-                        {{ admin_profile.user.first_name|slice:":1" }}{{ admin_profile.user.last_name|slice:":1" }}
-                    </div>
-                    <div class="admin-details">
-                        <h4>{{ admin_profile.user.get_full_name }}</h4>
-                        <p>{{ admin_profile.get_country_code_display }} - {{ admin_profile.user.email }}</p>
-                    </div>
-                </div>
-                <div class="admin-status">
-                    {% if admin_profile.is_active %}
-                        <span>✓</span>
-                        <span>{% trans "Ativo" %}</span>
-                    {% else %}
-                        <span>✗</span>
-                        <span>{% trans "Inativo" %}</span>
-                    {% endif %}
-                </div>
-            </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p style="color: var(--text-gray); text-align: center; padding: 40px;">
-            {% trans "Nenhum admin de país cadastrado ainda." %}
-        </p>
-    {% endif %}
+<!-- BOAS-VINDAS -->
+<div class="welcome-card">
+    <h2>🎉 {% trans "Bem-vindo, Admin Global!" %}</h2>
+    <p>{% trans "Este é o painel de administração global do SupplyConnect." %}</p>
+    <p>{% trans "Você pode criar administradores de países e configurar AD/SMTP padrão do sistema." %}</p>
 </div>
+
 {% endblock %}
-```
-
----
-
-## ✅ **Agora teste novamente:**
-
-Atualize a página no navegador:
-```
-http://127.0.0.1:8000/admin-panel/

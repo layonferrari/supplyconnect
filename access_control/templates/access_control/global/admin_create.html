@@ -10,8 +10,6 @@
     <span>/</span>
     <a href="{% url 'access_control:global_dashboard' %}">{% trans "Dashboard" %}</a>
     <span>/</span>
-    <a href="{% url 'access_control:global_admins_list' %}">{% trans "Admins" %}</a>
-    <span>/</span>
     <span>{% trans "Criar" %}</span>
 {% endblock %}
 
@@ -23,32 +21,20 @@
         </a>
     </li>
     <li class="sidebar-nav-item">
-        <a href="{% url 'access_control:global_countries' %}" class="sidebar-nav-link">
-            <span class="sidebar-nav-icon">🌍</span>
-            <span>{% trans "Países" %}</span>
+        <a href="{% url 'access_control:global_admin_create' %}" class="sidebar-nav-link active">
+            <span class="sidebar-nav-icon">➕</span>
+            <span>{% trans "Criar Admin de País" %}</span>
         </a>
     </li>
     <li class="sidebar-nav-item">
-        <a href="{% url 'access_control:global_admins_list' %}" class="sidebar-nav-link active">
-            <span class="sidebar-nav-icon">👥</span>
-            <span>{% trans "Admins de País" %}</span>
-        </a>
-    </li>
-    <li class="sidebar-nav-item">
-        <a href="{% url 'access_control:global_ad_config' %}" class="sidebar-nav-link">
-            <span class="sidebar-nav-icon">🔧</span>
-            <span>{% trans "Configurar AD Global" %}</span>
-        </a>
-    </li>
-    <li class="sidebar-nav-item">
-        <a href="{% url 'access_control:global_smtp_config' %}" class="sidebar-nav-link">
-            <span class="sidebar-nav-icon">📧</span>
-            <span>{% trans "Configurar SMTP Global" %}</span>
+        <a href="{% url 'access_control:system_default_config' %}" class="sidebar-nav-link">
+            <span class="sidebar-nav-icon">⚙️</span>
+            <span>{% trans "Configuração Padrão" %}</span>
         </a>
     </li>
     <li class="sidebar-nav-item">
         <a href="{% url 'admin:index' %}" class="sidebar-nav-link">
-            <span class="sidebar-nav-icon">⚙️</span>
+            <span class="sidebar-nav-icon">🔧</span>
             <span>{% trans "Django Admin" %}</span>
         </a>
     </li>
@@ -124,14 +110,14 @@
         align-items: center;
         gap: 10px;
         padding: 12px;
-        background: rgba(0, 145, 218, 0.05);
+        background: rgba(113, 142, 156, 0.05);
         border-radius: 8px;
         margin-bottom: 10px;
         transition: all 0.3s ease;
     }
 
     .form-check:hover {
-        background: rgba(0, 145, 218, 0.1);
+        background: rgba(150, 184, 201, 0.1);
     }
 
     .form-check-input {
@@ -402,7 +388,7 @@
 
     <!-- AÇÕES -->
     <div class="form-actions">
-        <a href="{% url 'access_control:global_admins_list' %}" class="btn btn-secondary">
+        <a href="{% url 'access_control:global_dashboard' %}" class="btn btn-secondary">
             {% trans "Cancelar" %}
         </a>
         <button type="submit" class="btn btn-primary">
@@ -412,6 +398,3 @@
     </div>
 </form>
 {% endblock %}
-```
-
----

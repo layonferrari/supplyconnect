@@ -17,6 +17,8 @@ from django.http import JsonResponse, HttpResponseForbidden
 from django.utils.translation import gettext as _
 from django.db import transaction
 from django.db.models import Q
+from django.contrib.auth import authenticate, login
+from .forms import AdminLoginForm
 
 # LDAP
 from ldap3 import Server, Connection, ALL
@@ -77,7 +79,7 @@ class CombinedFormProxy:
     Seu template usa um único 'form' com campos de SMTP e AD.
     Este proxy expõe:
       SMTP: host, port, username, password, use_ssl, use_tls
-      AD:   ldap_server, bind_user_dn, bind_password
+      AD:   ldap_server, ldap_port, bind_user_dn, bind_password, base_dn
     Além de .non_field_errors()
     """
     def __init__(self, smtp_form, ldap_form):
@@ -102,15 +104,17 @@ class CombinedFormProxy:
     @property
     def ldap_server(self): return self.ldap_form['ldap_server']
     @property
+    def ldap_port(self): return self.ldap_form['port']  # ← ADICIONADO
+    @property
     def bind_user_dn(self): return self.ldap_form['bind_user_dn']
     @property
     def bind_password(self): return self.ldap_form['bind_password']
+    @property
+    def base_dn(self): return self.ldap_form['base_dn']  # ← ADICIONADO
 
     # Erros combinados
     def non_field_errors(self):
-        # concatena erros dos dois forms
         return self.smtp_form.non_field_errors() + self.ldap_form.non_field_errors()
-
 
 # =====================================================
 # Home do painel
@@ -229,7 +233,7 @@ def global_admin_create(request):
                         can_manage_quality=form.cleaned_data['can_manage_quality'],
                     )
                     messages.success(request, _('Admin de País criado com sucesso!'))
-                    return redirect('access_control:global_admins_list')
+                    return redirect('access_control:global_dashboard')
             except Exception as e:
                 messages.error(request, _('Erro ao criar administrador: %(e)s') % {'e': e})
     else:
@@ -246,7 +250,7 @@ def global_admin_edit(request, admin_id):
         ap.is_active = bool(request.POST.get('is_active', ap.is_active))
         ap.save(update_fields=['is_active'])
         messages.success(request, _('Admin atualizado.'))
-        return redirect('access_control:global_admins_list')
+        return redirect('access_control:global_dashboard')
     return render(request, 'access_control/global/admin_edit.html', {'admin_profile': ap})
 
 
@@ -266,7 +270,7 @@ def global_admin_permissions(request, admin_id):
             setattr(perm, f, request.POST.get(f) == 'on')
         perm.save()
         messages.success(request, _('Permissões atualizadas.'))
-        return redirect('access_control:global_admins_list')
+        return redirect('access_control:global_dashboard')
     return render(request, 'access_control/global/admin_permissions.html', {'admin_profile': ap, 'perm': perm})
 
 
@@ -277,7 +281,7 @@ def global_admin_toggle(request, admin_id):
     ap.is_active = not ap.is_active
     ap.save(update_fields=['is_active'])
     messages.success(request, _('Admin %s.') % ('ativado' if ap.is_active else 'desativado'))
-    return redirect('access_control:global_admins_list')
+    return redirect('access_control:global_dashboard')
 
 
 # =====================================================
@@ -402,45 +406,72 @@ def _render_country_system_config(request):
         saved = False
 
         # AD: se campos de AD vieram preenchidos, valida e salva
-        if ldap_form.is_valid() and any(request.POST.get(k) for k in ['ldap_server', 'bind_user_dn', 'bind_password']):
-            cfg = ldap_form.save(commit=False)
-            cfg.country_code = ap.country_code
-            cfg.updated_by = request.user
-            if not cfg.pk:
-                cfg.created_by = request.user
-            pwd = ldap_form.cleaned_data.get('bind_password')
-            if pwd:
-                cfg.set_password(pwd)
-            cfg.save()
-            messages.success(request, _('Configurações de Active Directory salvas com sucesso!'))
-            saved = True
+        ad_fields_filled = any(request.POST.get(k) for k in ['ldap_server', 'port', 'bind_user_dn', 'bind_password', 'base_dn'])
+
+        if ad_fields_filled:
+            if ldap_form.is_valid():
+                cfg = ldap_form.save(commit=False)
+                cfg.country_code = ap.country_code
+                cfg.updated_by = request.user
+                if not cfg.pk:
+                    cfg.created_by = request.user
+                
+                # CORREÇÃO: Pegar senha do POST e verificar se não está vazia
+                pwd = request.POST.get('bind_password', '').strip()
+                if pwd:
+                    cfg.set_password(pwd)
+                    print(f"✅ Senha definida para AD (primeiros 5 chars): {pwd[:5]}...")
+                else:
+                    print("⚠️ Senha não foi fornecida no POST")
+                
+                cfg.save()
+                print(f"✅ Configuração AD salva! ID={cfg.pk}, Servidor={cfg.ldap_server}")
+                messages.success(request, _('Configurações de Active Directory salvas com sucesso!'))
+                saved = True
+            else:
+                # Mostrar erros do form
+                messages.error(request, _('Erro ao salvar AD. Verifique os campos.'))
+                print(f"❌ Erros do formulário AD: {ldap_form.errors}")
+                for field, errors in ldap_form.errors.items():
+                    for error in errors:
+                        messages.error(request, f'{field}: {error}')
 
         # SMTP: só salva se não estiver bloqueado
-        if not smtp_locked and smtp_form.is_valid() and any(request.POST.get(k) for k in ['host', 'username', 'password', 'port', 'use_ssl', 'use_tls']):
-            obj = smtp_form.save(commit=False)
-            obj.is_global = ap.is_global_admin()
-            obj.updated_by = request.user
-            if not obj.pk:
-                obj.created_by = request.user
-            pwd = request.POST.get('password')
-            if pwd:
-                obj.set_password(pwd)
-            obj.save()
-            messages.success(request, _('Configurações de SMTP salvas com sucesso!'))
-            saved = True
+        smtp_fields_filled = any(request.POST.get(k) for k in ['host', 'username', 'password', 'port', 'use_ssl', 'use_tls'])
+        
+        if not smtp_locked and smtp_fields_filled:
+            if smtp_form.is_valid():
+                obj = smtp_form.save(commit=False)
+                obj.is_global = ap.is_global_admin()
+                obj.updated_by = request.user
+                if not obj.pk:
+                    obj.created_by = request.user
+                pwd = request.POST.get('password')
+                if pwd:
+                    obj.set_password(pwd)
+                obj.save()
+                messages.success(request, _('Configurações de SMTP salvas com sucesso!'))
+                saved = True
+            else:
+                # Mostrar erros do form
+                messages.error(request, _('Erro ao salvar SMTP. Verifique os campos.'))
+                for field, errors in smtp_form.errors.items():
+                    for error in errors:
+                        messages.error(request, f'{field}: {error}')
 
         if saved:
             return redirect('access_control:country_dashboard')
-        else:
-            # Se nenhum dos dois salvou, dá um feedback genérico
-            messages.error(request, _('Nada para salvar ou dados inválidos.'))
+        elif not ad_fields_filled and not smtp_fields_filled:
+            # Se nenhum dos dois foi preenchido
+            messages.error(request, _('Nenhum campo foi preenchido.'))
 
     return render(request, 'access_control/country/system_config.html', {
-        'form': form_proxy,          # <- compatível com seu template atual
-        'smtp_locked': smtp_locked,  # mostra selo "Bloqueado (Global)"
+        'form': form_proxy,
+        'smtp_form': smtp_form,
+        'ldap_form': ldap_form,
+        'smtp_locked': smtp_locked,
         'is_global': ap.is_global_admin(),
     })
-
 
 # =====================================================
 # Teste de LDAP (Ajax)
@@ -449,18 +480,50 @@ def _render_country_system_config(request):
 @login_required
 @country_admin_required
 def test_ldap_connection(request):
-    server_address = request.POST.get('ldap_server') or ''
-    user_dn = request.POST.get('bind_user_dn') or ''
-    password = request.POST.get('bind_password') or ''
-
+    ap = request.user.admin_profile
+    
+    # Pegar dados do POST
+    server_address = request.POST.get('ldap_server', '').strip()
+    port = request.POST.get('port', '389').strip()
+    user_dn = request.POST.get('bind_user_dn', '').strip()
+    password = request.POST.get('bind_password', '').strip()
+    base_dn = request.POST.get('base_dn', '').strip()
+    
+    # Se senha não foi fornecida, pegar do banco
+    if not password:
+        ad_config = LdapDirectory.objects.filter(country_code=ap.country_code).first()
+        if ad_config:
+            password = ad_config.get_password()
+            print(f"🔑 Usando senha do banco (primeiros 5 chars): {password[:5] if password else 'VAZIA'}...")
+    
+    # Validar campos obrigatórios
+    if not server_address or not user_dn or not password:
+        return JsonResponse({
+            'success': False, 
+            'message': '❌ Campos obrigatórios não preenchidos!'
+        })
+    
     try:
-        server = Server(server_address, get_info=ALL)
+        print(f"🔄 Testando conexão LDAP...")
+        print(f"   Servidor: {server_address}:{port}")
+        print(f"   Usuário: {user_dn}")
+        print(f"   Base DN: {base_dn}")
+        
+        server = Server(server_address, port=int(port), get_info=ALL)
         conn = Connection(server, user=user_dn, password=password, auto_bind=True)
         conn.unbind()
-        return JsonResponse({'success': True, 'message': '✅ Conexão LDAP bem-sucedida!'})
+        
+        print(f"✅ Conexão LDAP bem-sucedida!")
+        return JsonResponse({
+            'success': True, 
+            'message': '✅ Conexão LDAP bem-sucedida!'
+        })
     except Exception as e:
-        return JsonResponse({'success': False, 'message': f'❌ Falha na conexão: {e}'})
-
+        print(f"❌ Erro na conexão LDAP: {e}")
+        return JsonResponse({
+            'success': False, 
+            'message': f'❌ Falha na conexão: {str(e)}'
+        })
 
 # =====================================================
 # Outras rotas do país (stubs — não quebram e você evolui depois)
@@ -542,3 +605,91 @@ def country_user_permissions(request, user_id):
 def country_users_list(request):
     users = User.objects.filter(is_active=True, is_supplier=False).order_by('first_name', 'last_name')
     return render(request, 'access_control/country/users_list.html', {'users': users})
+
+@login_required
+def system_default_config(request):
+    """Tela de configuração padrão do sistema (apenas admin.global)."""
+    from .models import SystemDefaultConfig, CountryPermission
+    from .forms import SystemDefaultConfigForm
+    
+    # Verifica se é admin global
+    if not hasattr(request.user, 'admin_profile') or not request.user.admin_profile.is_global_admin():
+        messages.error(request, 'Acesso negado. Apenas Admin Global pode acessar.')
+        return redirect('access_control:home')
+    
+    config = SystemDefaultConfig.get_config()
+    
+    if request.method == 'POST':
+        form = SystemDefaultConfigForm(request.POST, instance=config)
+        if form.is_valid():
+            config = form.save(commit=False)
+            config.updated_by = request.user
+            config.save()
+            messages.success(request, 'Configuração padrão atualizada com sucesso!')
+            return redirect('access_control:system_default_config')
+    else:
+        form = SystemDefaultConfigForm(instance=config)
+    
+    # Conta países usando configs
+    countries_using_ad = CountryPermission.objects.filter(
+        can_configure_ad=False,
+        ad_config_type='system_default'
+    ).count()
+    
+    countries_using_smtp = CountryPermission.objects.filter(
+        can_configure_smtp=False,
+        smtp_config_type='system_default'
+    ).count()
+    
+    context = {
+        'form': form,
+        'config': config,
+        'countries_using_ad_default': countries_using_ad,
+        'countries_using_smtp_default': countries_using_smtp,
+    }
+    
+    return render(request, 'access_control/global/system_config.html', context)
+
+def admin_login(request):
+    """Login para administradores (Global e País)."""
+    
+    if request.user.is_authenticated:
+        # Se já está logado, redireciona pro dashboard correto
+        if hasattr(request.user, 'admin_profile'):
+            profile = request.user.admin_profile
+            if profile.is_global_admin():
+                return redirect('access_control:global_dashboard')
+            elif profile.is_country_admin():
+                return redirect('access_control:country_dashboard')
+        return redirect('access_control:home')
+    
+    if request.method == 'POST':
+        form = AdminLoginForm(request.POST)
+        if form.is_valid():
+            username = form.cleaned_data['username']
+            password = form.cleaned_data['password']
+            
+            # Autenticar
+            user = authenticate(request, username=username, password=password)
+            
+            if user is not None:
+                # Verificar se é admin
+                if hasattr(user, 'admin_profile'):
+                    login(request, user)
+                    
+                    # Redirecionar baseado no tipo de admin
+                    profile = user.admin_profile
+                    if profile.is_global_admin():
+                        messages.success(request, f'Bem-vindo, Admin Global!')
+                        return redirect('access_control:global_dashboard')
+                    elif profile.is_country_admin():
+                        messages.success(request, f'Bem-vindo, Admin de {profile.get_country_code_display()}!')
+                        return redirect('access_control:country_dashboard')
+                else:
+                    messages.error(request, 'Este usuário não é um administrador.')
+            else:
+                messages.error(request, 'Usuário ou senha inválidos.')
+    else:
+        form = AdminLoginForm()
+    
+    return render(request, 'access_control/admin_login.html', {'form': form})

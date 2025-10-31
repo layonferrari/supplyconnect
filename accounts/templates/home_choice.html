@@ -18,6 +18,30 @@
             justify-content: center;
             padding: 20px;
         }
+        .admin-link {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px 18px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-decoration: none;
+            color: #0091DA;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .admin-link:hover {
+            background: #0091DA;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 145, 218, 0.4);
+        }
         .language-bar {
             position: fixed;
             top: 20px;
@@ -111,12 +135,17 @@
     </style>
 </head>
 <body>
+    <!-- Link Admin no topo esquerdo -->
+    <a href="{% url 'access_control:admin_login' %}" class="admin-link">
+        🔐 Admin
+    </a>
+
     <!-- Seletor de idioma discreto no topo direito -->
     <div class="language-bar">
         <form action="{% url 'set_language' %}" method="post">
             {% csrf_token %}
             <input name="next" type="hidden" value="{{ redirect_to }}">
-            <label>🌍</label>
+            <label>🌐</label>
             <select name="language" onchange="this.form.submit()">
                 {% get_current_language as LANGUAGE_CODE %}
                 {% get_available_languages as LANGUAGES %}

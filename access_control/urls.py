@@ -18,7 +18,9 @@ urlpatterns = [
     # ADMIN GLOBAL
     # ==========================================================
     path('global/', views.global_dashboard, name='global_dashboard'),
+    path('admin-login/', views.admin_login, name='admin_login'),
     path('global/create/', views.global_admin_create, name='global_admin_create'),
+    path('global/system-config/', views.system_default_config, name='system_default_config'),  # ← NOVA LINHA
 
     # ==========================================================
     # ADMIN DE PAÍS

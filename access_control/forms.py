@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 from accounts.models import User
-from .models import AdminProfile, CountryPermission, COUNTRY_CHOICES
+from .models import AdminProfile, CountryPermission, SystemDefaultConfig, COUNTRY_CHOICES
 from adminpanel.models import LdapDirectory
 
 
@@ -279,15 +279,39 @@ class CreateCountryAdminForm(forms.Form):
         label=_("Pode configurar Active Directory próprio"),
         required=False,
         initial=True,
-        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input', 'id': 'id_can_configure_ad'})
+    )
+    
+    ad_config_type = forms.ChoiceField(
+        label=_("Se NÃO pode configurar AD, usar:"),
+        choices=[
+            ('manual', _('Configuração Manual (você definirá agora)')),
+            ('system_default', _('Padrão do Sistema (config global)')),
+        ],
+        required=False,
+        initial='system_default',
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
+        help_text=_("Esta opção só será usada se desmarcar 'Pode configurar AD próprio'")
     )
     
     can_configure_smtp = forms.BooleanField(
         label=_("Pode configurar SMTP próprio"),
         required=False,
         initial=False,
-        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-        help_text=_("Se desmarcado, usará o SMTP Global")
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input', 'id': 'id_can_configure_smtp'}),
+        help_text=_("Se desmarcado, usará SMTP Manual ou Global")
+    )
+    
+    smtp_config_type = forms.ChoiceField(
+        label=_("Se NÃO pode configurar SMTP, usar:"),
+        choices=[
+            ('manual', _('Configuração Manual (você definirá agora)')),
+            ('system_default', _('Padrão do Sistema (config global)')),
+        ],
+        required=False,
+        initial='system_default',
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
+        help_text=_("Esta opção só será usada se desmarcar 'Pode configurar SMTP próprio'")
     )
     
     can_sync_ad_groups = forms.BooleanField(
@@ -368,3 +392,245 @@ class CreateCountryAdminForm(forms.Form):
                 raise ValidationError({'password': e})
         
         return cleaned_data
+
+
+# ============================================
+# FORMULÁRIO PARA CONFIGURAÇÃO PADRÃO DO SISTEMA
+# ============================================
+
+class SystemDefaultConfigForm(forms.ModelForm):
+    """
+    Formulário simplificado para configurar AD e SMTP padrão do sistema.
+    """
+    
+    # Campos extras para senhas (não criptografadas no form)
+    ad_bind_password_input = forms.CharField(
+        label=_('Senha do Bind AD'),
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': _('Digite a senha (deixe vazio para manter atual)')
+        }),
+        required=False,
+        help_text=_('Senha para conectar ao AD. Deixe em branco para manter a atual.')
+    )
+    
+    smtp_password_input = forms.CharField(
+        label=_('Senha SMTP'),
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': _('Digite a senha (deixe vazio para manter atual)')
+        }),
+        required=False,
+        help_text=_('Senha do servidor SMTP. Deixe em branco para manter a atual.')
+    )
+    
+    class Meta:
+        model = SystemDefaultConfig
+        fields = [
+            # AD
+            'ad_enabled',
+            'ad_server',
+            'ad_port',
+            'ad_use_ssl',
+            'ad_use_tls',
+            'ad_bind_user_dn',
+            'ad_base_dn',
+            'ad_user_search_base',
+            'ad_search_filter',
+            # SMTP
+            'smtp_enabled',
+            'smtp_host',
+            'smtp_port',
+            'smtp_use_tls',
+            'smtp_username',
+            'smtp_from_email',
+        ]
+        
+        widgets = {
+            # AD Fields
+            'ad_enabled': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'ad_server': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'ex: ad.empresa.com'
+            }),
+            'ad_port': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '389'
+            }),
+            'ad_use_ssl': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'ad_use_tls': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'ad_bind_user_dn': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'CN=Admin,CN=Users,DC=empresa,DC=com'
+            }),
+            'ad_base_dn': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'DC=empresa,DC=com'
+            }),
+            'ad_user_search_base': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'OU=Users,DC=empresa,DC=com'
+            }),
+            'ad_search_filter': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': '(sAMAccountName={username})'
+            }),
+            
+            # SMTP Fields
+            'smtp_enabled': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'smtp_host': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'ex: smtp.gmail.com'
+            }),
+            'smtp_port': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '587'
+            }),
+            'smtp_use_tls': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'smtp_username': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'usuario@empresa.com'
+            }),
+            'smtp_from_email': forms.EmailInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'noreply@empresa.com'
+            }),
+        }
+        
+        labels = {
+            'ad_enabled': _('Ativar AD Padrão'),
+            'ad_server': _('Servidor AD'),
+            'ad_port': _('Porta'),
+            'ad_use_ssl': _('Usar SSL (LDAPS)'),
+            'ad_use_tls': _('Usar START_TLS'),
+            'ad_bind_user_dn': _('User DN para Bind'),
+            'ad_base_dn': _('Base DN'),
+            'ad_user_search_base': _('Base de Busca'),
+            'ad_search_filter': _('Filtro LDAP'),
+            
+            'smtp_enabled': _('Ativar SMTP Padrão'),
+            'smtp_host': _('Servidor SMTP'),
+            'smtp_port': _('Porta SMTP'),
+            'smtp_use_tls': _('Usar TLS'),
+            'smtp_username': _('Usuário SMTP'),
+            'smtp_from_email': _('Email Remetente'),
+        }
+        
+        help_texts = {
+            'ad_enabled': _('Ative para que países possam usar este AD como padrão'),
+            'ad_server': _('Endereço do servidor LDAP/AD'),
+            'ad_port': _('Porta padrão: 389 (sem SSL) ou 636 (com SSL)'),
+            'ad_use_ssl': _('Use LDAPS na porta 636'),
+            'ad_use_tls': _('Use START_TLS na porta 389 (não use com SSL)'),
+            'ad_bind_user_dn': _('DN completo do usuário de serviço'),
+            'ad_base_dn': _('DN base para todas as buscas'),
+            'ad_user_search_base': _('Base específica para buscar usuários (opcional)'),
+            'ad_search_filter': _('Use {username} como placeholder. Ex: (sAMAccountName={username})'),
+            
+            'smtp_enabled': _('Ative para que países possam usar este SMTP como padrão'),
+            'smtp_host': _('Endereço do servidor SMTP'),
+            'smtp_port': _('Porta padrão: 587 (TLS), 465 (SSL) ou 25'),
+            'smtp_use_tls': _('Ative para conexões seguras (recomendado)'),
+            'smtp_username': _('Usuário para autenticação SMTP'),
+            'smtp_from_email': _('Email que aparecerá como remetente'),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Se está editando, senhas não são obrigatórias
+        if self.instance and self.instance.pk:
+            self.fields['ad_bind_password_input'].required = False
+            self.fields['smtp_password_input'].required = False
+    
+    def clean(self):
+        """Validações do formulário."""
+        cleaned_data = super().clean()
+        
+        # Validação AD
+        ad_enabled = cleaned_data.get('ad_enabled')
+        if ad_enabled:
+            ad_server = cleaned_data.get('ad_server')
+            ad_bind_user_dn = cleaned_data.get('ad_bind_user_dn')
+            ad_base_dn = cleaned_data.get('ad_base_dn')
+            
+            if not ad_server:
+                self.add_error('ad_server', _('Servidor AD é obrigatório quando AD está ativo'))
+            if not ad_bind_user_dn:
+                self.add_error('ad_bind_user_dn', _('User DN é obrigatório quando AD está ativo'))
+            if not ad_base_dn:
+                self.add_error('ad_base_dn', _('Base DN é obrigatório quando AD está ativo'))
+            
+            # Senha obrigatória apenas na criação
+            if not self.instance.pk:
+                if not cleaned_data.get('ad_bind_password_input'):
+                    self.add_error('ad_bind_password_input', _('Senha AD é obrigatória na primeira configuração'))
+        
+        # Validação SMTP
+        smtp_enabled = cleaned_data.get('smtp_enabled')
+        if smtp_enabled:
+            smtp_host = cleaned_data.get('smtp_host')
+            smtp_username = cleaned_data.get('smtp_username')
+            smtp_from_email = cleaned_data.get('smtp_from_email')
+            
+            if not smtp_host:
+                self.add_error('smtp_host', _('Servidor SMTP é obrigatório quando SMTP está ativo'))
+            if not smtp_username:
+                self.add_error('smtp_username', _('Usuário SMTP é obrigatório quando SMTP está ativo'))
+            if not smtp_from_email:
+                self.add_error('smtp_from_email', _('Email remetente é obrigatório quando SMTP está ativo'))
+            
+            # Senha obrigatória apenas na criação
+            if not self.instance.pk:
+                if not cleaned_data.get('smtp_password_input'):
+                    self.add_error('smtp_password_input', _('Senha SMTP é obrigatória na primeira configuração'))
+        
+        # Validação SSL/TLS AD
+        ad_use_ssl = cleaned_data.get('ad_use_ssl')
+        ad_use_tls = cleaned_data.get('ad_use_tls')
+        if ad_use_ssl and ad_use_tls:
+            raise forms.ValidationError(_('Não é possível usar SSL e TLS simultaneamente no AD'))
+        
+        return cleaned_data
+    
+    def save(self, commit=True):
+        """Salva o formulário tratando as senhas."""
+        instance = super().save(commit=False)
+        
+        # Processar senha AD se fornecida
+        ad_password = self.cleaned_data.get('ad_bind_password_input')
+        if ad_password:
+            # TODO: Criptografar a senha antes de salvar
+            instance.ad_bind_password = ad_password
+        
+        # Processar senha SMTP se fornecida
+        smtp_password = self.cleaned_data.get('smtp_password_input')
+        if smtp_password:
+            # TODO: Criptografar a senha antes de salvar
+            instance.smtp_password = smtp_password
+        
+        if commit:
+            instance.save()
+        
+        return instance
+
+class AdminLoginForm(forms.Form):
+    """Formulário de login para administradores (Global e País)."""
+    
+    username = forms.CharField(
+        label='Usuário',
+        max_length=150,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Digite seu usuário',
+            'autofocus': True
+        })
+    )
+    
+    password = forms.CharField(
+        label='Senha',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Digite sua senha'
+        })
+    )
