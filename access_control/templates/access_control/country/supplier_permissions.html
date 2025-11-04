@@ -40,8 +40,9 @@
         <div style="background: white; padding: 20px; border-radius: 12px; border-left: 4px solid #10b981;">
             <div style="color: #64748b; font-size: 0.9rem; margin-bottom: 8px;">{% trans "Grupos com Permissão" %}</div>
             <div style="font-size: 2rem; font-weight: bold; color: #10b981;">
-                {% for group in ad_groups %}{% if group.can_create_suppliers %}{{ forloop.counter }}{% endif %}{% endfor %}
+                {{ groups_with_permission }}
             </div>
+
         </div>
         <div style="background: white; padding: 20px; border-radius: 12px; border-left: 4px solid #8b5cf6;">
             <div style="color: #64748b; font-size: 0.9rem; margin-bottom: 8px;">{% trans "Total de Usuários" %}</div>

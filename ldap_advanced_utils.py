@@ -343,66 +343,80 @@ def test_ad_connection(ldap_config):
 def list_ad_users(ldap_config):
     """
     Lista todos os usuários do Active Directory.
-    
+
     Args:
-        ldap_config: Instância de LdapDirectory com as configurações
-    
+        ldap_config: Instância de LdapDirectory com as configurações.
+
     Returns:
-        Lista de dicionários com informações dos usuários
+        Lista de dicionários com informações dos usuários, incluindo status de atividade.
     """
     from ldap3 import Server, Connection, ALL, SUBTREE
-    
+
     users = []
-    
+
     try:
-        # Conectar ao AD
+        # Conectar ao servidor AD
         server = Server(
             ldap_config.ldap_server,
-            port=ldap_config.port,
+            port=int(ldap_config.port),
             get_info=ALL
         )
-        
+
         conn = Connection(
             server,
             user=ldap_config.bind_user_dn,
             password=ldap_config.get_password(),
             auto_bind=True
         )
-        
-        # Buscar usuários
+
+        # Definir o DN base da pesquisa
+        search_base = ldap_config.base_dn
+
+        # Filtro: somente pessoas (sem computadores)
+        search_filter = "(objectCategory=person)"
+
+        # Buscar usuários e atributos desejados
         conn.search(
-            search_base=ldap_config.base_dn,
-            search_filter='(&(objectClass=user)(objectCategory=person))',
+            search_base=search_base,
+            search_filter=search_filter,
             search_scope=SUBTREE,
             attributes=[
-                'sAMAccountName', 
-                'mail', 
-                'givenName', 
-                'sn', 
-                'displayName',
-                'department',
-                'title',
-                'distinguishedName'
-            ]
+                "sAMAccountName",
+                "displayName",
+                "givenName",
+                "sn",
+                "mail",
+                "department",
+                "title",
+                "userAccountControl",
+            ],
         )
-        
+
         for entry in conn.entries:
+            # Alguns atributos podem não existir, por isso usamos try/except ou getattr
+            try:
+                uac_value = int(entry.userAccountControl.value)
+            except Exception:
+                uac_value = 512  # padrão: ativo
+
             user_data = {
-                'dn': str(entry.distinguishedName),
-                'username': str(entry.sAMAccountName) if entry.sAMAccountName else '',
-                'email': str(entry.mail) if entry.mail else '',
-                'first_name': str(entry.givenName) if entry.givenName else '',
-                'last_name': str(entry.sn) if entry.sn else '',
-                'display_name': str(entry.displayName) if entry.displayName else '',
-                'department': str(entry.department) if entry.department else '',
-                'title': str(entry.title) if entry.title else '',
+                "dn": str(entry.entry_dn),
+                "username": str(entry.sAMAccountName.value) if entry.sAMAccountName else "",
+                "email": str(entry.mail.value) if entry.mail else "",
+                "first_name": str(entry.givenName.value) if entry.givenName else "",
+                "last_name": str(entry.sn.value) if entry.sn else "",
+                "display_name": str(entry.displayName.value) if entry.displayName else "",
+                "department": str(entry.department.value) if entry.department else "",
+                "title": str(entry.title.value) if entry.title else "",
+                "user_account_control": uac_value,  # ✅ agora corretamente lido
             }
+
             users.append(user_data)
-        
+
         conn.unbind()
-        
+
     except Exception as e:
-        print(f"Erro ao listar usuários do AD: {e}")
+        print(f"❌ Erro ao listar usuários do AD: {e}")
         raise
-    
+
     return users

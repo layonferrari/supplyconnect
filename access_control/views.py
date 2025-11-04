@@ -443,28 +443,45 @@ def country_supplier_permissions(request):
     Mostra grupos e usuários sincronizados do Active Directory.
     """
     from .models import ADGroup, ADUser
-    
+    from django.db.models import Q
+
     ap = request.user.admin_profile
     country_code = ap.country_code
-    
-    # Buscar grupos do AD do país
+
+    # Buscar grupos do AD do país (apenas ativos)
     ad_groups = ADGroup.objects.filter(
         country_code=country_code,
         is_active=True
     ).order_by('name')
-    
-    # Buscar usuários do AD do país
+
+    # Buscar usuários do AD do país (apenas ativos)
     ad_users = ADUser.objects.filter(
         country_code=country_code,
         is_active=True
     ).order_by('display_name')
-    
+
     # Verificar se tem configuração de AD
     has_ad_config = LdapDirectory.objects.filter(
         country_code=country_code,
         is_active=True
     ).exists()
-    
+
+    # --- NOVAS VARIÁVEIS DE ESTATÍSTICA/CONTAGEM ---
+    # Quantos grupos têm permissão explícita para criar fornecedores
+    groups_with_permission = ad_groups.filter(can_create_suppliers=True).count()
+
+    # Quantos usuários têm permissão para criar fornecedores:
+    # (usuarios com permissão individual OU que pertencem a grupos com permissão)
+    users_with_permission_qs = ADUser.objects.filter(
+        country_code=country_code,
+        is_active=True
+    ).filter(
+        Q(can_create_suppliers=True) |
+        Q(groups__can_create_suppliers=True)
+    ).distinct()
+
+    users_with_permission = users_with_permission_qs.count()
+
     context = {
         'ad_groups': ad_groups,
         'ad_users': ad_users,
@@ -473,8 +490,13 @@ def country_supplier_permissions(request):
         'has_ad_config': has_ad_config,
         'total_groups': ad_groups.count(),
         'total_users': ad_users.count(),
+        # novas chaves para o template
+        'groups_with_permission': groups_with_permission,
+        'users_with_permission': users_with_permission,
+        # opcional: expor a queryset se quiser listar apenas os usuários com permissão
+        'users_with_permission_qs': users_with_permission_qs,
     }
-    
+
     return render(request, 'access_control/country/supplier_permissions.html', context)
 
 
@@ -852,57 +874,77 @@ def country_ad_sync_groups(request):
 def country_ad_sync_users(request):
     """
     Sincroniza usuários do Active Directory com o banco de dados.
+    Atualiza o campo is_active de acordo com o atributo userAccountControl.
     """
     from .models import ADUser
     import sys
     sys.path.append('/home/claude')
-    from ldap_advanced_utils import list_ad_users
+    from ldap_advanced_utils import list_ad_users  # helper externo
     
     ap = request.user.admin_profile
-    
+
     try:
+        # Busca a configuração LDAP ativa do país
         ldap_config = LdapDirectory.objects.get(
             country_code=ap.country_code,
             is_active=True
         )
-        
+
+        # Chama o helper que lista usuários do AD
         ad_users = list_ad_users(ldap_config)
-        
+
         created_count = 0
         updated_count = 0
-        
+
         for user_data in ad_users:
+            # Extrai dados básicos retornados pelo helper
+            username = user_data.get('username', '')
+            email = user_data.get('email', '')
+            first_name = user_data.get('first_name', '')
+            last_name = user_data.get('last_name', '')
+            display_name = user_data.get('display_name', '')
+            department = user_data.get('department', '')
+            title = user_data.get('title', '')
+            dn = user_data.get('dn', '')
+
+            # Lê o atributo userAccountControl (valor padrão 512 = ativo)
+            uac = int(user_data.get('user_account_control', 512))
+            # Se o bit 2 estiver ligado, o usuário está desativado
+            is_active = not (uac & 2)
+
+            # Atualiza ou cria o registro do usuário
             user, created = ADUser.objects.update_or_create(
                 country_code=ap.country_code,
-                distinguished_name=user_data['dn'],
+                distinguished_name=dn,
                 defaults={
-                    'username': user_data.get('username', ''),
-                    'email': user_data.get('email', ''),
-                    'first_name': user_data.get('first_name', ''),
-                    'last_name': user_data.get('last_name', ''),
-                    'display_name': user_data.get('display_name', ''),
-                    'department': user_data.get('department', ''),
-                    'title': user_data.get('title', ''),
-                    'is_active': True
+                    'username': username,
+                    'email': email,
+                    'first_name': first_name,
+                    'last_name': last_name,
+                    'display_name': display_name,
+                    'department': department,
+                    'title': title,
+                    'is_active': is_active,  # ✅ Atualiza corretamente agora
                 }
             )
-            
+
             if created:
                 created_count += 1
             else:
                 updated_count += 1
-        
+
         messages.success(
-            request, 
-            f'✅ Sincronização de usuários concluída! {created_count} usuários criados, {updated_count} usuários atualizados.'
+            request,
+            f'✅ Sincronização de usuários concluída! {created_count} criados, {updated_count} atualizados.'
         )
-    
+
     except LdapDirectory.DoesNotExist:
         messages.error(request, '❌ Active Directory não configurado para este país.')
     except Exception as e:
         messages.error(request, f'❌ Erro ao sincronizar usuários: {str(e)}')
 
     return redirect('access_control:country_supplier_permissions')
+
 # =====================================================
 # TOGGLE DE PERMISSÕES (GRUPOS E USUÁRIOS)
 # =====================================================
@@ -910,7 +952,7 @@ def country_ad_sync_users(request):
 @login_required
 @country_admin_required
 def country_toggle_group_permission(request, group_id):
-    
+
     """
     Ativa/desativa permissão de um grupo para criar fornecedores.
     """
