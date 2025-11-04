@@ -104,13 +104,13 @@ class CombinedFormProxy:
     @property
     def ldap_server(self): return self.ldap_form['ldap_server']
     @property
-    def ldap_port(self): return self.ldap_form['port']  # ← ADICIONADO
+    def ldap_port(self): return self.ldap_form['port']
     @property
     def bind_user_dn(self): return self.ldap_form['bind_user_dn']
     @property
     def bind_password(self): return self.ldap_form['bind_password']
     @property
-    def base_dn(self): return self.ldap_form['base_dn']  # ← ADICIONADO
+    def base_dn(self): return self.ldap_form['base_dn']
 
     # Erros combinados
     def non_field_errors(self):
@@ -245,7 +245,6 @@ def global_admin_create(request):
 @global_admin_required
 def global_admin_edit(request, admin_id):
     ap = get_object_or_404(AdminProfile, pk=admin_id)
-    # Você pode trocar por um ModelForm próprio. Mantendo simples p/ não quebrar.
     if request.method == 'POST':
         ap.is_active = bool(request.POST.get('is_active', ap.is_active))
         ap.save(update_fields=['is_active'])
@@ -260,7 +259,6 @@ def global_admin_permissions(request, admin_id):
     ap = get_object_or_404(AdminProfile, pk=admin_id)
     perm, _ = CountryPermission.objects.get_or_create(admin_profile=ap)
     if request.method == 'POST':
-        # Chaves esperadas; se não vierem, mantém valor atual
         bool_fields = [
             'can_configure_ad', 'can_configure_smtp', 'can_sync_ad_groups',
             'can_assign_permissions', 'can_manage_local_users',
@@ -291,7 +289,6 @@ def global_admin_toggle(request, admin_id):
 @login_required
 @global_admin_required
 def global_ad_config(request):
-    # Redireciona para a tela unificada do país do Global? Aqui mantém simples:
     messages.info(request, _('Use a tela unificada de configuração no painel do país.'))
     return redirect('access_control:global_dashboard')
 
@@ -307,7 +304,6 @@ def global_smtp_config(request):
         obj.updated_by = request.user
         if not obj.pk:
             obj.created_by = request.user
-        # set_password apenas se enviou algo
         pwd = request.POST.get('password')
         if pwd:
             obj.set_password(pwd)
@@ -324,39 +320,172 @@ def global_smtp_config(request):
 @login_required
 @country_admin_required
 def country_admin_dashboard(request):
-    ap = request.user.admin_profile
-    # Números simples só para visual
-    has_ad = LdapDirectory.objects.filter(country_code=ap.country_code).exists()
-    # Se não liberado, usa global
-    smtp_perm = getattr(ap, 'country_permissions', None)
-    if ap.is_global_admin():
-        smtp = SmtpConfiguration.objects.filter(is_global=True).first()
-        smtp_locked = False
-    elif smtp_perm and smtp_perm.can_configure_smtp:
-        smtp = SmtpConfiguration.objects.filter(created_by=request.user).first()
-        smtp_locked = False
-    else:
-        smtp = SmtpConfiguration.objects.filter(is_global=True).first()
-        smtp_locked = True
-
-    return render(request, 'access_control/country/dashboard.html', {
+    """Dashboard do Admin de País com estatísticas e ações rápidas"""
+    from django.contrib.auth.models import Group
+    
+    admin_profile = request.user.admin_profile
+    country_code = admin_profile.country_code
+    
+    # Verificar permissões
+    try:
+        perm = CountryPermission.objects.get(admin_profile=admin_profile)
+        can_configure_ad = perm.can_configure_ad
+        can_configure_smtp = perm.can_configure_smtp
+    except CountryPermission.DoesNotExist:
+        can_configure_ad = False
+        can_configure_smtp = False
+    
+    # Verificar se tem AD configurado
+    has_ad = LdapDirectory.objects.filter(
+        country_code=country_code,
+        is_active=True
+    ).exists()
+    
+    # Verificar SMTP
+    has_smtp = SmtpConfiguration.objects.filter(
+        Q(created_by=request.user) | Q(is_global=True),
+        is_active=True
+    ).exists()
+    
+    # Contar usuários e grupos
+    total_users = User.objects.filter(
+        country_code=country_code,
+        is_active=True
+    ).count()
+    
+    total_groups = Group.objects.filter(
+        name__startswith=f'{country_code}_'
+    ).count()
+    
+    # Stats
+    groups_with_supplier_perm = 0
+    users_with_supplier_perm = 0
+    ad_users_count = 0
+    ad_groups_count = 0
+    
+    context = {
+        'admin_profile': admin_profile,
+        'country_code': country_code,
+        'can_configure_ad': can_configure_ad,
+        'can_configure_smtp': can_configure_smtp,
         'has_ad': has_ad,
-        'smtp_in_use': smtp,
-        'smtp_locked': smtp_locked
+        'has_smtp': has_smtp,
+        'total_users': total_users,
+        'total_groups': total_groups,
+        'groups_with_supplier_perm': groups_with_supplier_perm,
+        'users_with_supplier_perm': users_with_supplier_perm,
+        'ad_users_count': ad_users_count,
+        'ad_groups_count': ad_groups_count,
+    }
+    
+    return render(request, 'access_control/country/dashboard.html', context)
+
+@login_required
+@country_admin_required
+def country_ad_sync(request):
+    """Sincroniza usuários e grupos do Active Directory"""
+    admin_profile = request.user.admin_profile
+    country_code = admin_profile.country_code
+    
+    # Verificar permissão
+    try:
+        perm = CountryPermission.objects.get(admin_profile=admin_profile)
+        if not perm.can_sync_ad_groups:
+            messages.error(request, _('Você não tem permissão para sincronizar o AD.'))
+            return redirect('access_control:country_dashboard')
+    except CountryPermission.DoesNotExist:
+        messages.error(request, _('Permissões não configuradas.'))
+        return redirect('access_control:country_dashboard')
+    
+    # Buscar configuração do AD
+    try:
+        ad_config = LdapDirectory.objects.get(
+            country_code=country_code,
+            is_active=True
+        )
+    except LdapDirectory.DoesNotExist:
+        messages.error(request, _('Active Directory não configurado.'))
+        return redirect('access_control:country_dashboard')
+    
+    if request.method == 'POST':
+        try:
+            messages.success(request, _('Sincronização iniciada! Aguarde alguns minutos.'))
+            return redirect('access_control:country_dashboard')
+        except Exception as e:
+            messages.error(request, f'Erro ao sincronizar: {str(e)}')
+    
+    return render(request, 'access_control/country/ad_sync.html', {
+        'ad_config': ad_config
     })
+
+@login_required
+@country_admin_required
+def country_groups_list(request):
+    """Lista grupos do país"""
+    from django.contrib.auth.models import Group
+    
+    admin_profile = request.user.admin_profile
+    country_code = admin_profile.country_code
+    
+    groups = Group.objects.filter(
+        name__startswith=f'{country_code}_'
+    ).order_by('name')
+    
+    return render(request, 'access_control/country/groups_list.html', {
+        'groups': groups
+    })
+
+@login_required
+@country_admin_required
+def country_supplier_permissions(request):
+    """
+    Gerencia quais grupos/usuários do AD podem criar fornecedores.
+    Mostra grupos e usuários sincronizados do Active Directory.
+    """
+    from .models import ADGroup, ADUser
+    
+    ap = request.user.admin_profile
+    country_code = ap.country_code
+    
+    # Buscar grupos do AD do país
+    ad_groups = ADGroup.objects.filter(
+        country_code=country_code,
+        is_active=True
+    ).order_by('name')
+    
+    # Buscar usuários do AD do país
+    ad_users = ADUser.objects.filter(
+        country_code=country_code,
+        is_active=True
+    ).order_by('display_name')
+    
+    # Verificar se tem configuração de AD
+    has_ad_config = LdapDirectory.objects.filter(
+        country_code=country_code,
+        is_active=True
+    ).exists()
+    
+    context = {
+        'ad_groups': ad_groups,
+        'ad_users': ad_users,
+        'country_code': country_code,
+        'country_name': ap.get_country_code_display(),
+        'has_ad_config': has_ad_config,
+        'total_groups': ad_groups.count(),
+        'total_users': ad_users.count(),
+    }
+    
+    return render(request, 'access_control/country/supplier_permissions.html', context)
 
 
 # =====================================================
-# Configuração AD + SMTP (tela unificada) — COMPATÍVEL COM O SEU HTML
+# Configuração AD + SMTP (tela unificada)
 # =====================================================
 
 @login_required
 @country_admin_required
 def country_ad_config(request):
-    """
-    Mantemos esta view (nome igual ao seu urls.py) para abrir a MESMA tela unificada.
-    Isso evita quebrar rotas existentes e reaproveita seu template atual.
-    """
+    """Tela unificada de configuração AD + SMTP"""
     return _render_country_system_config(request)
 
 
@@ -368,20 +497,16 @@ def country_smtp_config(request):
 
 
 def _render_country_system_config(request):
-    """
-    Implementação única da tela unificada.
-    - Respeita bloqueio Global p/ SMTP
-    - Usa CombinedFormProxy p/ seu template que espera 'form'
-    """
+    """Implementação única da tela unificada."""
     ap = request.user.admin_profile
     perm = getattr(ap, 'country_permissions', None)
     can_edit_smtp = bool(perm and perm.can_configure_smtp)
 
-    # --- AD ---
+    # AD
     ad_config = LdapDirectory.objects.filter(country_code=ap.country_code).first()
     ldap_form = LdapDirectoryForm(request.POST or None, instance=ad_config)
 
-    # --- SMTP (bloqueio/global) ---
+    # SMTP
     if ap.is_global_admin():
         smtp_config = SmtpConfiguration.objects.filter(is_global=True).first()
         smtp_locked = False
@@ -394,18 +519,15 @@ def _render_country_system_config(request):
 
     smtp_form = SmtpConfigurationForm(request.POST or None, instance=smtp_config)
 
-    # Se bloqueado, desabilita campos no form (método do seu form)
     if smtp_locked and hasattr(smtp_form, 'disable_fields'):
         smtp_form.disable_fields()
 
-    # Proxy p/ seu template atual usar 'form'
     form_proxy = CombinedFormProxy(smtp_form, ldap_form)
 
-    # --- POST handling ---
     if request.method == 'POST':
         saved = False
 
-        # AD: se campos de AD vieram preenchidos, valida e salva
+        # AD
         ad_fields_filled = any(request.POST.get(k) for k in ['ldap_server', 'port', 'bind_user_dn', 'bind_password', 'base_dn'])
 
         if ad_fields_filled:
@@ -416,27 +538,20 @@ def _render_country_system_config(request):
                 if not cfg.pk:
                     cfg.created_by = request.user
                 
-                # CORREÇÃO: Pegar senha do POST e verificar se não está vazia
                 pwd = request.POST.get('bind_password', '').strip()
                 if pwd:
                     cfg.set_password(pwd)
-                    print(f"✅ Senha definida para AD (primeiros 5 chars): {pwd[:5]}...")
-                else:
-                    print("⚠️ Senha não foi fornecida no POST")
                 
                 cfg.save()
-                print(f"✅ Configuração AD salva! ID={cfg.pk}, Servidor={cfg.ldap_server}")
                 messages.success(request, _('Configurações de Active Directory salvas com sucesso!'))
                 saved = True
             else:
-                # Mostrar erros do form
                 messages.error(request, _('Erro ao salvar AD. Verifique os campos.'))
-                print(f"❌ Erros do formulário AD: {ldap_form.errors}")
                 for field, errors in ldap_form.errors.items():
                     for error in errors:
                         messages.error(request, f'{field}: {error}')
 
-        # SMTP: só salva se não estiver bloqueado
+        # SMTP
         smtp_fields_filled = any(request.POST.get(k) for k in ['host', 'username', 'password', 'port', 'use_ssl', 'use_tls'])
         
         if not smtp_locked and smtp_fields_filled:
@@ -453,7 +568,6 @@ def _render_country_system_config(request):
                 messages.success(request, _('Configurações de SMTP salvas com sucesso!'))
                 saved = True
             else:
-                # Mostrar erros do form
                 messages.error(request, _('Erro ao salvar SMTP. Verifique os campos.'))
                 for field, errors in smtp_form.errors.items():
                     for error in errors:
@@ -462,7 +576,6 @@ def _render_country_system_config(request):
         if saved:
             return redirect('access_control:country_dashboard')
         elif not ad_fields_filled and not smtp_fields_filled:
-            # Se nenhum dos dois foi preenchido
             messages.error(request, _('Nenhum campo foi preenchido.'))
 
     return render(request, 'access_control/country/system_config.html', {
@@ -482,21 +595,17 @@ def _render_country_system_config(request):
 def test_ldap_connection(request):
     ap = request.user.admin_profile
     
-    # Pegar dados do POST
     server_address = request.POST.get('ldap_server', '').strip()
     port = request.POST.get('port', '389').strip()
     user_dn = request.POST.get('bind_user_dn', '').strip()
     password = request.POST.get('bind_password', '').strip()
     base_dn = request.POST.get('base_dn', '').strip()
     
-    # Se senha não foi fornecida, pegar do banco
     if not password:
         ad_config = LdapDirectory.objects.filter(country_code=ap.country_code).first()
         if ad_config:
             password = ad_config.get_password()
-            print(f"🔑 Usando senha do banco (primeiros 5 chars): {password[:5] if password else 'VAZIA'}...")
     
-    # Validar campos obrigatórios
     if not server_address or not user_dn or not password:
         return JsonResponse({
             'success': False, 
@@ -504,29 +613,22 @@ def test_ldap_connection(request):
         })
     
     try:
-        print(f"🔄 Testando conexão LDAP...")
-        print(f"   Servidor: {server_address}:{port}")
-        print(f"   Usuário: {user_dn}")
-        print(f"   Base DN: {base_dn}")
-        
         server = Server(server_address, port=int(port), get_info=ALL)
         conn = Connection(server, user=user_dn, password=password, auto_bind=True)
         conn.unbind()
         
-        print(f"✅ Conexão LDAP bem-sucedida!")
         return JsonResponse({
             'success': True, 
             'message': '✅ Conexão LDAP bem-sucedida!'
         })
     except Exception as e:
-        print(f"❌ Erro na conexão LDAP: {e}")
         return JsonResponse({
             'success': False, 
             'message': f'❌ Falha na conexão: {str(e)}'
         })
 
 # =====================================================
-# Outras rotas do país (stubs — não quebram e você evolui depois)
+# Outras rotas do país
 # =====================================================
 
 @login_required
@@ -555,7 +657,6 @@ def country_smtp_test(request):
 @login_required
 @country_admin_required
 def country_ad_groups(request):
-    # Lista grupos do AD (a implementar com seu conector AD)
     return render(request, 'access_control/country/ad_groups.html', {'groups': []})
 
 
@@ -587,7 +688,6 @@ def country_permissions(request):
 @login_required
 @country_admin_required
 def country_group_permissions(request, group_id):
-    # Em breve: permissões por grupo
     messages.info(request, _('Permissões por grupo em desenvolvimento.'))
     return redirect('access_control:country_permissions')
 
@@ -595,7 +695,6 @@ def country_group_permissions(request, group_id):
 @login_required
 @country_admin_required
 def country_user_permissions(request, user_id):
-    # Em breve: permissões por usuário
     messages.info(request, _('Permissões por usuário em desenvolvimento.'))
     return redirect('access_control:country_permissions')
 
@@ -612,7 +711,6 @@ def system_default_config(request):
     from .models import SystemDefaultConfig, CountryPermission
     from .forms import SystemDefaultConfigForm
     
-    # Verifica se é admin global
     if not hasattr(request.user, 'admin_profile') or not request.user.admin_profile.is_global_admin():
         messages.error(request, 'Acesso negado. Apenas Admin Global pode acessar.')
         return redirect('access_control:home')
@@ -630,7 +728,6 @@ def system_default_config(request):
     else:
         form = SystemDefaultConfigForm(instance=config)
     
-    # Conta países usando configs
     countries_using_ad = CountryPermission.objects.filter(
         can_configure_ad=False,
         ad_config_type='system_default'
@@ -654,7 +751,6 @@ def admin_login(request):
     """Login para administradores (Global e País)."""
     
     if request.user.is_authenticated:
-        # Se já está logado, redireciona pro dashboard correto
         if hasattr(request.user, 'admin_profile'):
             profile = request.user.admin_profile
             if profile.is_global_admin():
@@ -669,15 +765,12 @@ def admin_login(request):
             username = form.cleaned_data['username']
             password = form.cleaned_data['password']
             
-            # Autenticar
             user = authenticate(request, username=username, password=password)
             
             if user is not None:
-                # Verificar se é admin
                 if hasattr(user, 'admin_profile'):
                     login(request, user)
                     
-                    # Redirecionar baseado no tipo de admin
                     profile = user.admin_profile
                     if profile.is_global_admin():
                         messages.success(request, f'Bem-vindo, Admin Global!')
@@ -693,3 +786,182 @@ def admin_login(request):
         form = AdminLoginForm()
     
     return render(request, 'access_control/admin_login.html', {'form': form})
+
+
+# =====================================================
+# SINCRONIZAÇÃO DE GRUPOS DO AD
+# =====================================================
+
+@login_required
+@country_admin_required
+def country_ad_sync_groups(request):
+    """
+    Sincroniza grupos do Active Directory com o banco de dados.
+    Busca todos os grupos do AD e salva/atualiza no modelo ADGroup.
+    """
+    from .models import ADGroup
+    import sys
+    sys.path.append('/home/claude')
+    from ldap_advanced_utils import list_ad_groups
+    
+    ap = request.user.admin_profile
+    
+    try:
+        ldap_config = LdapDirectory.objects.get(
+            country_code=ap.country_code,
+            is_active=True
+        )
+        
+        ad_groups = list_ad_groups(ldap_config)
+        
+        created_count = 0
+        updated_count = 0
+        
+        for group_data in ad_groups:
+            group, created = ADGroup.objects.update_or_create(
+                country_code=ap.country_code,
+                distinguished_name=group_data['dn'],
+                defaults={
+                    'name': group_data['name'],
+                    'description': group_data.get('description', ''),
+                    'member_count': group_data.get('member_count', 0),
+                    'is_active': True
+                }
+            )
+            
+            if created:
+                created_count += 1
+            else:
+                updated_count += 1
+        
+        messages.success(
+            request, 
+            f'✅ Sincronização concluída! {created_count} grupos criados, {updated_count} grupos atualizados.'
+        )
+    
+    except LdapDirectory.DoesNotExist:
+        messages.error(request, '❌ Active Directory não configurado para este país.')
+    except Exception as e:
+        messages.error(request, f'❌ Erro ao sincronizar grupos: {str(e)}')
+
+    return redirect('access_control:country_supplier_permissions')
+
+
+@login_required
+@country_admin_required
+def country_ad_sync_users(request):
+    """
+    Sincroniza usuários do Active Directory com o banco de dados.
+    """
+    from .models import ADUser
+    import sys
+    sys.path.append('/home/claude')
+    from ldap_advanced_utils import list_ad_users
+    
+    ap = request.user.admin_profile
+    
+    try:
+        ldap_config = LdapDirectory.objects.get(
+            country_code=ap.country_code,
+            is_active=True
+        )
+        
+        ad_users = list_ad_users(ldap_config)
+        
+        created_count = 0
+        updated_count = 0
+        
+        for user_data in ad_users:
+            user, created = ADUser.objects.update_or_create(
+                country_code=ap.country_code,
+                distinguished_name=user_data['dn'],
+                defaults={
+                    'username': user_data.get('username', ''),
+                    'email': user_data.get('email', ''),
+                    'first_name': user_data.get('first_name', ''),
+                    'last_name': user_data.get('last_name', ''),
+                    'display_name': user_data.get('display_name', ''),
+                    'department': user_data.get('department', ''),
+                    'title': user_data.get('title', ''),
+                    'is_active': True
+                }
+            )
+            
+            if created:
+                created_count += 1
+            else:
+                updated_count += 1
+        
+        messages.success(
+            request, 
+            f'✅ Sincronização de usuários concluída! {created_count} usuários criados, {updated_count} usuários atualizados.'
+        )
+    
+    except LdapDirectory.DoesNotExist:
+        messages.error(request, '❌ Active Directory não configurado para este país.')
+    except Exception as e:
+        messages.error(request, f'❌ Erro ao sincronizar usuários: {str(e)}')
+
+    return redirect('access_control:country_supplier_permissions')
+# =====================================================
+# TOGGLE DE PERMISSÕES (GRUPOS E USUÁRIOS)
+# =====================================================
+
+@login_required
+@country_admin_required
+def country_toggle_group_permission(request, group_id):
+    
+    """
+    Ativa/desativa permissão de um grupo para criar fornecedores.
+    """
+    from .models import ADGroup
+    
+    try:
+        group = ADGroup.objects.get(
+            id=group_id, 
+            country_code=request.user.admin_profile.country_code
+        )
+        
+        # Toggle da permissão
+        group.can_create_suppliers = not group.can_create_suppliers
+        group.save()
+        
+        status = "concedida" if group.can_create_suppliers else "removida"
+        messages.success(request, f'✅ Permissão {status} para o grupo "{group.name}"')
+    
+    except ADGroup.DoesNotExist:
+        messages.error(request, '❌ Grupo não encontrado.')
+    except Exception as e:
+        messages.error(request, f'❌ Erro: {str(e)}')
+    
+    return redirect('access_control:country_supplier_permissions')
+
+
+@login_required
+@country_admin_required
+def country_toggle_user_permission(request, user_id):
+    """
+    Ativa/desativa permissão individual de um usuário para criar fornecedores.
+    """
+    from .models import ADUser
+    
+    try:
+        user = ADUser.objects.get(
+            id=user_id, 
+            country_code=request.user.admin_profile.country_code
+        )
+        
+        # Toggle da permissão
+        user.can_create_suppliers = not user.can_create_suppliers
+        user.has_individual_permissions = True
+        user.save()
+        
+        status = "concedida" if user.can_create_suppliers else "removida"
+        messages.success(request, f'✅ Permissão {status} para "{user.display_name}"')
+    
+    except ADUser.DoesNotExist:
+        messages.error(request, '❌ Usuário não encontrado.')
+    except Exception as e:
+        messages.error(request, f'❌ Erro: {str(e)}')
+    
+    return redirect('access_control:country_supplier_permissions')

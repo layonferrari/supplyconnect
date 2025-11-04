@@ -1,465 +1,236 @@
-{% extends "access_control/base/panel_base.html" %}
+{% extends 'access_control/base/panel_base.html' %}
 {% load i18n %}
 
-{% block title %}{% trans "Dashboard do País" %}{% endblock %}
-{% block page_title %}{% trans "Dashboard - Admin de País" %}{% endblock %}
-
-{% block breadcrumb %}
-    <a href="{% url 'access_control:home' %}">{% trans "Início" %}</a>
-    <span>/</span>
-    <span>{% trans "Dashboard" %}</span>
-{% endblock %}
-
-{% block sidebar_menu %}
-    <li class="sidebar-nav-item">
-        <a href="{% url 'access_control:country_dashboard' %}" class="sidebar-nav-link active">
-            <span class="sidebar-nav-icon">📊</span>
-            <span>{% trans "Dashboard" %}</span>
-        </a>
-    </li>
-    <li class="sidebar-nav-item">
-        <a href="#" class="sidebar-nav-link">
-            <span class="sidebar-nav-icon">👥</span>
-            <span>{% trans "Usuários" %}</span>
-        </a>
-    </li>
-    <li class="sidebar-nav-item">
-        <a href="{% url 'admin:index' %}" class="sidebar-nav-link">
-            <span class="sidebar-nav-icon">⚙️</span>
-            <span>{% trans "Django Admin" %}</span>
-        </a>
-    </li>
-{% endblock %}
-
-{% block topbar_actions %}
-    <span>{% trans "Bem-vindo" %}, {{ request.user.get_full_name }}!</span>
-{% endblock %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard do Administrador de País{% endblock %}
 
 {% block content %}
-<!-- Estilos personalizados para o novo layout claro -->
 <style>
-    /* Sobrescrever fundo escuro por layout claro */
-    body {
-        background: #f0f4f8 !important;
-    }
-    
-    .main-content {
-        background: #f0f4f8 !important;
-    }
-    
-    /* Cards de estatísticas com novo design */
-    .stats-grid {
+    .dashboard-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: 1.5rem;
-        margin-bottom: 2rem;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
     }
     
-    .stat-card {
+    .dashboard-card {
         background: white;
         border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        transition: all 0.3s ease;
+        padding: 25px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        transition: all 0.3s;
         border: 1px solid #e2e8f0;
     }
     
-    .stat-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 4px 16px rgba(102, 126, 234, 0.15);
+    .dashboard-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.12);
     }
     
-    .stat-icon {
-        font-size: 2.5rem;
-        margin-bottom: 0.5rem;
+    .dashboard-card h3 {
+        color: #003d82;
+        margin: 0 0 15px 0;
+        font-size: 1.3em;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .dashboard-card p {
+        color: #64748b;
+        margin-bottom: 20px;
+        line-height: 1.6;
+    }
+    
+    .card-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .btn-action {
+        padding: 12px 20px;
+        border-radius: 8px;
+        text-decoration: none;
+        text-align: center;
+        font-weight: 500;
+        transition: all 0.3s;
+        border: none;
+        cursor: pointer;
+        font-size: 0.95em;
+        display: block;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #003d82 0%, #0056b3 100%);
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #002a5c 0%, #003d82 100%);
+        transform: translateX(3px);
+    }
+    
+    .btn-secondary {
+        background: #f1f5f9;
+        color: #475569;
+        border: 1px solid #cbd5e1;
+    }
+    
+    .btn-secondary:hover {
+        background: #e2e8f0;
+    }
+    
+    .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.85em;
+        font-weight: 600;
+        margin-top: 10px;
+    }
+    
+    .status-active {
+        background: #dcfce7;
+        color: #166534;
+    }
+    
+    .status-inactive {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+    
+    .stats-row {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid #e2e8f0;
+    }
+    
+    .stat-item {
+        text-align: center;
     }
     
     .stat-value {
-        font-size: 2rem;
-        font-weight: bold;
-        color: #2d3748;
-        margin-bottom: 0.25rem;
+        font-size: 1.8em;
+        font-weight: 700;
+        color: #003d82;
     }
     
     .stat-label {
-        font-size: 0.9rem;
-        color: #718096;
-    }
-    
-    /* Card de configuração AD - Destaque especial */
-    .ad-config-card {
-        background: white;
-        border-radius: 12px;
-        padding: 2rem;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        margin-bottom: 2rem;
-        border: 1px solid #e2e8f0;
-    }
-    
-    .ad-config-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 1.5rem;
-        padding-bottom: 1rem;
-        border-bottom: 2px solid #e2e8f0;
-    }
-    
-    .ad-config-title {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-    }
-    
-    .ad-config-title h3 {
-        margin: 0;
-        color: #2d3748;
-        font-size: 1.5rem;
-    }
-    
-    .ad-icon-large {
-        font-size: 3rem;
-    }
-    
-    /* Badge de status */
-    .status-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
-        font-weight: 600;
-        font-size: 0.9rem;
-    }
-    
-    .status-badge.configured {
-        background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
-        color: white;
-    }
-    
-    .status-badge.not-configured {
-        background: linear-gradient(135deg, #fc8181 0%, #f56565 100%);
-        color: white;
-    }
-    
-    /* Alerta de status */
-    .ad-status-alert {
-        padding: 1.25rem;
-        border-radius: 8px;
-        margin-bottom: 1.5rem;
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-    }
-    
-    .ad-status-alert.success {
-        background: #f0fff4;
-        border-left: 4px solid #48bb78;
-        color: #22543d;
-    }
-    
-    .ad-status-alert.warning {
-        background: #fffaf0;
-        border-left: 4px solid #ed8936;
-        color: #7c2d12;
-    }
-    
-    .ad-status-alert-icon {
-        font-size: 2rem;
-    }
-    
-    .ad-status-alert-content h4 {
-        margin: 0 0 0.25rem 0;
-        font-size: 1.1rem;
-    }
-    
-    .ad-status-alert-content p {
-        margin: 0;
-        font-size: 0.9rem;
-        opacity: 0.9;
-    }
-    
-    /* Detalhes da configuração AD */
-    .ad-details {
-        background: #f7fafc;
-        padding: 1.25rem;
-        border-radius: 8px;
-        margin-bottom: 1.5rem;
-    }
-    
-    .ad-detail-item {
-        display: flex;
-        justify-content: space-between;
-        padding: 0.75rem 0;
-        border-bottom: 1px solid #e2e8f0;
-    }
-    
-    .ad-detail-item:last-child {
-        border-bottom: none;
-    }
-    
-    .ad-detail-label {
-        font-weight: 600;
-        color: #4a5568;
-    }
-    
-    .ad-detail-value {
-        color: #2d3748;
-        font-family: 'Courier New', monospace;
-    }
-    
-    /* Botões com gradiente */
-    .btn-gradient-primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        padding: 0.875rem 2rem;
-        border-radius: 8px;
-        font-weight: 600;
-        font-size: 1rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-    }
-    
-    .btn-gradient-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-    }
-    
-    .btn-gradient-danger {
-        background: linear-gradient(135deg, #fc8181 0%, #f56565 100%);
-        color: white;
-        border: none;
-        padding: 0.75rem 1.5rem;
-        border-radius: 8px;
-        font-weight: 600;
-        font-size: 0.9rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    
-    .btn-gradient-danger:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(245, 101, 101, 0.4);
-    }
-    
-    .btn-gradient-secondary {
-        background: white;
-        color: #667eea;
-        border: 2px solid #667eea;
-        padding: 0.75rem 1.5rem;
-        border-radius: 8px;
-        font-weight: 600;
-        font-size: 0.9rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    
-    .btn-gradient-secondary:hover {
-        background: #667eea;
-        color: white;
-        transform: translateY(-2px);
-    }
-    
-    .button-group {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-    }
-    
-    /* Card de boas-vindas */
-    .welcome-card {
-        background: white;
-        border-radius: 12px;
-        padding: 2rem;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        border: 1px solid #e2e8f0;
-    }
-    
-    .welcome-card h3 {
-        color: #2d3748;
-        margin-bottom: 1rem;
-    }
-    
-    .welcome-card p {
-        color: #718096;
-        line-height: 1.6;
+        font-size: 0.85em;
+        color: #64748b;
+        margin-top: 5px;
     }
 </style>
 
-<!-- Grid de Estatísticas -->
-<div class="stats-grid">
-    <div class="stat-card">
-        <div class="stat-icon">👥</div>
-        <div class="stat-content">
-            <div class="stat-value">0</div>
-            <div class="stat-label">{% trans "Usuários Ativos" %}</div>
-        </div>
-    </div>
-    
-    <div class="stat-card">
-        <div class="stat-icon">📋</div>
-        <div class="stat-content">
-            <div class="stat-value">0</div>
-            <div class="stat-label">{% trans "Fornecedores" %}</div>
-        </div>
-    </div>
-    
-    <div class="stat-card">
-        <div class="stat-icon">📄</div>
-        <div class="stat-content">
-            <div class="stat-value">0</div>
-            <div class="stat-label">{% trans "Contratos Ativos" %}</div>
-        </div>
-    </div>
-    
-    <div class="stat-card">
-        <div class="stat-icon">⚠️</div>
-        <div class="stat-content">
-            <div class="stat-value">0</div>
-            <div class="stat-label">{% trans "Pendências" %}</div>
-        </div>
-    </div>
-</div>
+<h2 style="color: #003d82; margin-bottom: 30px; font-size: 2em;">🏠 Bem-vindo ao Dashboard</h2>
 
-<!-- Card de Configuração do Active Directory -->
-<div class="ad-config-card">
-    <div class="ad-config-header">
-        <div class="ad-config-title">
-            <span class="ad-icon-large">🔐</span>
-            <h3>{% trans "Active Directory" %}</h3>
-        </div>
+<div class="dashboard-grid">
+    <!-- Card 1: Active Directory -->
+    <div class="dashboard-card">
+        <h3><span>🔐</span> Active Directory</h3>
+        <p>Configure e sincronize os usuários do Active Directory.</p>
         
-        {% if ad_configured %}
-            <span class="status-badge configured">
-                ✓ {% trans "Configurado" %}
-            </span>
-        {% else %}
-            <span class="status-badge not-configured">
-                ✗ {% trans "Não Configurado" %}
-            </span>
-        {% endif %}
-    </div>
-    
-    {% if ad_configured %}
-        <!-- AD CONFIGURADO -->
-        <div class="ad-status-alert success">
-            <div class="ad-status-alert-icon">✅</div>
-            <div class="ad-status-alert-content">
-                <h4>{% trans "Active Directory Configurado com Sucesso!" %}</h4>
-                <p>{% trans "Seu AD está ativo e funcionando. Os colaboradores podem fazer login usando suas credenciais corporativas." %}</p>
-            </div>
-        </div>
-        
-        <div class="ad-details">
-            <div class="ad-detail-item">
-                <span class="ad-detail-label">{% trans "Servidor:" %}</span>
-                <span class="ad-detail-value">{{ ad_server }}</span>
-            </div>
-            <div class="ad-detail-item">
-                <span class="ad-detail-label">{% trans "Status:" %}</span>
-                <span class="ad-detail-value" style="color: #48bb78; font-weight: bold;">{% trans "Ativo" %}</span>
-            </div>
-        </div>
-        
-        {% if can_configure_ad %}
-            <div class="button-group">
-                <a href="{% url 'access_control:country_ad_config' %}" class="btn-gradient-primary">
-                    ⚙️ {% trans "Editar Configuração" %}
-                </a>
-                <button onclick="testADConnection()" class="btn-gradient-secondary">
-                    🔍 {% trans "Testar Conexão" %}
-                </button>
-                <a href="{% url 'access_control:country_ad_delete' %}" class="btn-gradient-danger">
-                    🗑️ {% trans "Remover AD" %}
-                </a>
-            </div>
-        {% endif %}
-    {% else %}
-        <!-- AD NÃO CONFIGURADO -->
-        <div class="ad-status-alert warning">
-            <div class="ad-status-alert-icon">⚠️</div>
-            <div class="ad-status-alert-content">
-                <h4>{% trans "Active Directory Não Configurado" %}</h4>
-                <p>{% trans "Configure o Active Directory para permitir que os colaboradores façam login com suas credenciais corporativas." %}</p>
-            </div>
-        </div>
-        
-        {% if can_configure_ad %}
-            <div class="button-group">
-                <a href="{% url 'access_control:country_ad_config' %}" class="btn-gradient-primary">
-                    ➕ {% trans "Configurar Active Directory" %}
-                </a>
-            </div>
-        {% else %}
-            <div class="ad-status-alert warning">
-                <div class="ad-status-alert-icon">🔒</div>
-                <div class="ad-status-alert-content">
-                    <h4>{% trans "Sem Permissão" %}</h4>
-                    <p>{% trans "Você não tem permissão para configurar o Active Directory. Entre em contato com o Admin Global." %}</p>
+        {% if has_ad %}
+            <span class="status-badge status-active">✓ Configurado</span>
+            <div class="stats-row">
+                <div class="stat-item">
+                    <div class="stat-value">{{ ad_users_count }}</div>
+                    <div class="stat-label">Usuários</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">{{ ad_groups_count }}</div>
+                    <div class="stat-label">Grupos</div>
                 </div>
             </div>
+            <div class="card-actions">
+                <a href="{% url 'access_control:country_ad_config' %}" class="btn-action btn-secondary">⚙️ Configurações</a>
+            </div>
+        {% else %}
+            <span class="status-badge status-inactive">⚠ Não Configurado</span>
+            <div class="card-actions">
+                {% if can_configure_ad %}
+                    <a href="{% url 'access_control:country_ad_config' %}" class="btn-action btn-primary">➕ Configurar AD</a>
+                {% else %}
+                    <p style="color: #ef4444; margin-top: 10px; font-size: 0.9em;">🔒 Sem permissão.</p>
+                {% endif %}
+            </div>
         {% endif %}
-    {% endif %}
+    </div>
+
+    <!-- Card 2: Permissões -->
+    <div class="dashboard-card">
+        <h3><span>👥</span> Permissões de Fornecedores</h3>
+        <p>Defina quais grupos e usuários podem criar fornecedores.</p>
+        
+        <div class="stats-row">
+            <div class="stat-item">
+                <div class="stat-value">{{ groups_with_supplier_perm }}</div>
+                <div class="stat-label">Grupos</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">{{ users_with_supplier_perm }}</div>
+                <div class="stat-label">Usuários</div>
+            </div>
+        </div>
+        
+        <div class="card-actions">
+            <a href="#" onclick="alert('Em desenvolvimento'); return false;" class="btn-action btn-primary">🔑 Gerenciar Permissões</a>
+        </div>
+    </div>
+
+    <!-- Card 3: SMTP -->
+    <div class="dashboard-card">
+        <h3><span>📧</span> Servidor SMTP</h3>
+        <p>Configure o servidor de e-mail para notificações.</p>
+        
+        {% if has_smtp %}
+            <span class="status-badge status-active">✓ Configurado</span>
+            <div class="card-actions">
+                <a href="{% url 'access_control:country_smtp_config' %}" class="btn-action btn-secondary">⚙️ Editar</a>
+            </div>
+        {% else %}
+            <span class="status-badge status-inactive">⚠ Não Configurado</span>
+            <div class="card-actions">
+                {% if can_configure_smtp %}
+                    <a href="{% url 'access_control:country_smtp_config' %}" class="btn-action btn-primary">➕ Configurar SMTP</a>
+                {% else %}
+                    <p style="color: #ef4444; margin-top: 10px; font-size: 0.9em;">🔒 Sem permissão.</p>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Card 4: Usuários -->
+    <div class="dashboard-card">
+        <h3><span>👤</span> Usuários e Grupos</h3>
+        <p>Visualize e gerencie usuários do seu país.</p>
+        
+        <div class="stats-row">
+            <div class="stat-item">
+                <div class="stat-value">{{ total_users }}</div>
+                <div class="stat-label">Usuários</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">{{ total_groups }}</div>
+                <div class="stat-label">Grupos</div>
+            </div>
+        </div>
+        
+        <div class="card-actions">
+            <a href="{% url 'access_control:country_users_list' %}" class="btn-action btn-primary">👥 Ver Usuários</a>
+        </div>
+    </div>
 </div>
 
-<!-- Card de Boas-vindas -->
-<div class="welcome-card">
-    <h3>{% trans "Bem-vindo ao Painel de Administração" %}</h3>
-    <p>{% trans "Este é o dashboard do administrador de país. Aqui você poderá gerenciar usuários, fornecedores e configurações do seu país." %}</p>
+<div style="background: white; padding: 20px; border-radius: 12px; margin-top: 20px; border: 1px solid #e2e8f0;">
+    <h3 style="color: #003d82; margin: 0 0 10px 0;">📊 Informações do Sistema</h3>
+    <p style="color: #64748b; margin: 0;">
+        <strong>País:</strong> {{ country_code }} | 
+        <strong>Perfil:</strong> Administrador de País | 
+        <strong>Usuários Ativos:</strong> {{ total_users }}
+    </p>
 </div>
-
-<!-- Script para testar conexão AD via AJAX -->
-<script>
-function testADConnection() {
-    if (!confirm('{% trans "Deseja testar a conexão com o Active Directory?" %}')) {
-        return;
-    }
-    
-    // Exibir loading
-    const originalButton = event.target;
-    const originalText = originalButton.innerHTML;
-    originalButton.innerHTML = '⏳ {% trans "Testando..." %}';
-    originalButton.disabled = true;
-    
-    // Fazer requisição AJAX
-    fetch('{% url "access_control:country_ad_test" %}', {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': '{{ csrf_token }}',
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('✅ ' + data.message + '\n\n' + 
-                  '{% trans "Servidor:" %} ' + data.server + '\n' +
-                  '{% trans "Porta:" %} ' + data.port);
-        } else {
-            alert('❌ ' + data.message);
-        }
-    })
-    .catch(error => {
-        alert('❌ {% trans "Erro ao testar conexão:" %} ' + error);
-    })
-    .finally(() => {
-        originalButton.innerHTML = originalText;
-        originalButton.disabled = false;
-    });
-}
-</script>
 {% endblock %}

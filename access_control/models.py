@@ -4,7 +4,6 @@ from django.core.exceptions import ValidationError
 
 
 # Choices para países
-# Países ILPEA
 COUNTRY_CHOICES = [
     ('BR', '🇧🇷 Brasil'),
     ('AR', '🇦🇷 Argentina'),
@@ -53,25 +52,6 @@ ACCESS_LEVEL_CHOICES = [
     ('country_admin', 'Administrador de País'),
     ('manager', 'Gerente'),
     ('user', 'Usuário'),
-]
-
-
-# Choices para permissões
-PERMISSION_CHOICES = [
-    ('view_suppliers', 'Visualizar Fornecedores'),
-    ('create_suppliers', 'Criar Fornecedores'),
-    ('edit_suppliers', 'Editar Fornecedores'),
-    ('delete_suppliers', 'Excluir Fornecedores'),
-    ('view_contracts', 'Visualizar Contratos'),
-    ('create_contracts', 'Criar Contratos'),
-    ('edit_contracts', 'Editar Contratos'),
-    ('delete_contracts', 'Excluir Contratos'),
-    ('view_quality', 'Visualizar Qualidade'),
-    ('manage_quality', 'Gerenciar Qualidade'),
-    ('view_reports', 'Visualizar Relatórios'),
-    ('export_reports', 'Exportar Relatórios'),
-    ('manage_users', 'Gerenciar Usuários'),
-    ('manage_settings', 'Gerenciar Configurações'),
 ]
 
 
@@ -247,160 +227,6 @@ class CountryPermission(models.Model):
         return f"Permissões de {self.admin_profile.user.get_full_name()}"
 
 
-class AdGroup(models.Model):
-    """
-    Grupos sincronizados do Active Directory.
-    Cada país terá seus próprios grupos.
-    """
-    # País do grupo
-    country_code = models.CharField(
-        max_length=5,
-        choices=COUNTRY_CHOICES,
-        verbose_name='País'
-    )
-    
-    # Dados do grupo no AD
-    ad_group_name = models.CharField(
-        max_length=200,
-        verbose_name='Nome do Grupo no AD'
-    )
-    
-    ad_group_dn = models.CharField(
-        max_length=500,
-        verbose_name='Distinguished Name (DN)',
-        help_text='DN completo do grupo no AD'
-    )
-    
-    # Descrição
-    description = models.TextField(
-        blank=True,
-        verbose_name='Descrição'
-    )
-    
-    # Sincronização
-    last_sync = models.DateTimeField(
-        null=True,
-        blank=True,
-        verbose_name='Última Sincronização'
-    )
-    
-    member_count = models.IntegerField(
-        default=0,
-        verbose_name='Quantidade de Membros'
-    )
-    
-    # Status
-    is_active = models.BooleanField(
-        default=True,
-        verbose_name='Ativo'
-    )
-    
-    # Auditoria
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Criado Em')
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name='ad_groups_created',
-        verbose_name='Criado Por'
-    )
-    
-    class Meta:
-        verbose_name = 'Grupo do AD'
-        verbose_name_plural = 'Grupos do AD'
-        unique_together = [['country_code', 'ad_group_dn']]
-        ordering = ['country_code', 'ad_group_name']
-    
-    def __str__(self):
-        return f"{self.get_country_code_display()} - {self.ad_group_name}"
-
-
-class GroupPermission(models.Model):
-    """
-    Permissões atribuídas a um grupo do AD.
-    Quando um usuário do grupo faz login, recebe estas permissões.
-    """
-    ad_group = models.ForeignKey(
-        AdGroup,
-        on_delete=models.CASCADE,
-        related_name='permissions',
-        verbose_name='Grupo do AD'
-    )
-    
-    # Permissão
-    permission_code = models.CharField(
-        max_length=50,
-        choices=PERMISSION_CHOICES,
-        verbose_name='Permissão'
-    )
-    
-    # Auditoria
-    granted_at = models.DateTimeField(auto_now_add=True, verbose_name='Concedida Em')
-    granted_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name='group_permissions_granted',
-        verbose_name='Concedida Por'
-    )
-    
-    class Meta:
-        verbose_name = 'Permissão de Grupo'
-        verbose_name_plural = 'Permissões de Grupos'
-        unique_together = [['ad_group', 'permission_code']]
-        ordering = ['ad_group', 'permission_code']
-    
-    def __str__(self):
-        return f"{self.ad_group.ad_group_name} - {self.get_permission_code_display()}"
-
-
-class UserPermission(models.Model):
-    """
-    Permissões específicas atribuídas a um usuário individual.
-    Sobrescreve permissões de grupo.
-    """
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='custom_permissions',
-        verbose_name='Usuário'
-    )
-    
-    # Permissão
-    permission_code = models.CharField(
-        max_length=50,
-        choices=PERMISSION_CHOICES,
-        verbose_name='Permissão'
-    )
-    
-    # Tipo (conceder ou revogar)
-    is_granted = models.BooleanField(
-        default=True,
-        verbose_name='Concedida',
-        help_text='True = Conceder, False = Revogar (mesmo que o grupo tenha)'
-    )
-    
-    # Auditoria
-    granted_at = models.DateTimeField(auto_now_add=True, verbose_name='Modificada Em')
-    granted_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name='user_permissions_granted',
-        verbose_name='Modificada Por'
-    )
-    
-    class Meta:
-        verbose_name = 'Permissão de Usuário'
-        verbose_name_plural = 'Permissões de Usuários'
-        unique_together = [['user', 'permission_code']]
-        ordering = ['user', 'permission_code']
-    
-    def __str__(self):
-        status = "✅" if self.is_granted else "❌"
-        return f"{status} {self.user.get_full_name()} - {self.get_permission_code_display()}"
-
-
 class SystemDefaultConfig(models.Model):
     """
     Configurações padrão do sistema (AD e SMTP global).
@@ -542,3 +368,73 @@ class SystemDefaultConfig(models.Model):
         """Retorna ou cria a configuração padrão."""
         config, created = cls.objects.get_or_create(pk=1)
         return config
+
+
+class ADGroup(models.Model):
+    """Grupos sincronizados do Active Directory"""
+    country_code = models.CharField(max_length=2, choices=COUNTRY_CHOICES)
+    name = models.CharField(max_length=200, default='')
+    distinguished_name = models.CharField(max_length=500, unique=True, default='')
+    description = models.TextField(blank=True, null=True)
+    member_count = models.IntegerField(default=0)
+    
+    # Permissões
+    can_create_suppliers = models.BooleanField(default=False, verbose_name="Pode criar fornecedores")
+    can_edit_suppliers = models.BooleanField(default=False, verbose_name="Pode editar fornecedores")
+    can_delete_suppliers = models.BooleanField(default=False, verbose_name="Pode excluir fornecedores")
+    
+    # Auditoria
+    last_sync = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Grupo do AD"
+        verbose_name_plural = "Grupos do AD"
+        ordering = ['country_code', 'name']
+        unique_together = ['country_code', 'name']
+    
+    def __str__(self):
+        return f"{self.country_code} - {self.name}"
+        return f"{self.country_code} - {self.name}"
+
+
+class ADUser(models.Model):
+    """Usuários sincronizados do Active Directory"""
+    country_code = models.CharField(max_length=2, choices=COUNTRY_CHOICES)
+    username = models.CharField(max_length=150, default='')
+    email = models.EmailField(blank=True, null=True)
+    first_name = models.CharField(max_length=150, blank=True, default='')
+    last_name = models.CharField(max_length=150, blank=True, default='')
+    distinguished_name = models.CharField(max_length=500, unique=True, default='')
+    display_name = models.CharField(max_length=300, blank=True, default='')
+    department = models.CharField(max_length=200, blank=True, null=True)
+    title = models.CharField(max_length=200, blank=True, null=True)
+    
+    # Relacionamento com grupos
+    groups = models.ManyToManyField(ADGroup, related_name='users', blank=True)
+    
+    # Permissões individuais (sobrescrevem permissões do grupo)
+    can_create_suppliers = models.BooleanField(default=False, verbose_name="Pode criar fornecedores")
+    can_edit_suppliers = models.BooleanField(default=False, verbose_name="Pode editar fornecedores")
+    can_delete_suppliers = models.BooleanField(default=False, verbose_name="Pode excluir fornecedores")
+    has_individual_permissions = models.BooleanField(default=False, verbose_name="Tem permissões individuais")
+    
+    # Auditoria
+    last_sync = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Usuário do AD"
+        verbose_name_plural = "Usuários do AD"
+        ordering = ['country_code', 'display_name']
+        unique_together = ['country_code', 'username']
+    
+    def __str__(self):
+        return f"{self.country_code} - {self.display_name or self.username}"
+    
+    def get_full_name(self):
+        if self.first_name and self.last_name:
+            return f"{self.first_name} {self.last_name}"
+        return self.display_name or self.username

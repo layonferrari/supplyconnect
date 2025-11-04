@@ -3,9 +3,9 @@ from django.utils.html import format_html
 from .models import (
     AdminProfile,
     CountryPermission,
-    AdGroup,
-    GroupPermission,
-    UserPermission
+    ADGroup,
+    ADUser,
+    SystemDefaultConfig
 )
 
 
@@ -84,7 +84,7 @@ class AdminProfileAdmin(admin.ModelAdmin):
     
     def save_model(self, request, obj, form, change):
         """Salva o modelo e registra quem criou."""
-        if not change:  # Se está criando
+        if not change:
             obj.created_by = request.user
         super().save_model(request, obj, form, change)
 
@@ -125,7 +125,9 @@ class CountryPermissionAdmin(admin.ModelAdmin):
         ('Permissões de Configuração', {
             'fields': (
                 'can_configure_ad',
-                'can_configure_smtp'
+                'ad_config_type',
+                'can_configure_smtp',
+                'smtp_config_type'
             )
         }),
         ('Permissões de Usuários', {
@@ -154,14 +156,17 @@ class CountryPermissionAdmin(admin.ModelAdmin):
     admin_display.short_description = 'Administrador'
 
 
-@admin.register(AdGroup)
-class AdGroupAdmin(admin.ModelAdmin):
+@admin.register(ADGroup)
+class ADGroupAdmin(admin.ModelAdmin):
     """Admin para grupos do AD."""
     
     list_display = [
-        'ad_group_name',
+        'name',
         'country_display',
         'member_count',
+        'can_create_suppliers',
+        'can_edit_suppliers',
+        'can_delete_suppliers',
         'is_active',
         'last_sync'
     ]
@@ -169,42 +174,48 @@ class AdGroupAdmin(admin.ModelAdmin):
     list_filter = [
         'country_code',
         'is_active',
+        'can_create_suppliers',
+        'can_edit_suppliers',
+        'can_delete_suppliers',
         'last_sync'
     ]
     
     search_fields = [
-        'ad_group_name',
-        'ad_group_dn',
+        'name',
+        'distinguished_name',
         'description'
     ]
     
     readonly_fields = [
         'last_sync',
-        'member_count',
-        'created_at',
-        'created_by'
+        'created_at'
     ]
     
     fieldsets = (
         ('Informações do Grupo', {
             'fields': (
                 'country_code',
-                'ad_group_name',
-                'ad_group_dn',
-                'description'
-            )
-        }),
-        ('Sincronização', {
-            'fields': (
-                'last_sync',
+                'name',
+                'distinguished_name',
+                'description',
                 'member_count'
             )
         }),
-        ('Status', {
-            'fields': ('is_active',)
+        ('Permissões de Fornecedores', {
+            'fields': (
+                'can_create_suppliers',
+                'can_edit_suppliers',
+                'can_delete_suppliers'
+            )
+        }),
+        ('Status e Sincronização', {
+            'fields': (
+                'is_active',
+                'last_sync'
+            )
         }),
         ('Auditoria', {
-            'fields': ('created_at', 'created_by'),
+            'fields': ('created_at',),
             'classes': ('collapse',)
         }),
     )
@@ -213,122 +224,149 @@ class AdGroupAdmin(admin.ModelAdmin):
         """Exibe país com bandeira."""
         return obj.get_country_code_display()
     country_display.short_description = 'País'
-    
-    def save_model(self, request, obj, form, change):
-        """Salva o modelo e registra quem criou."""
-        if not change:
-            obj.created_by = request.user
-        super().save_model(request, obj, form, change)
 
 
-@admin.register(GroupPermission)
-class GroupPermissionAdmin(admin.ModelAdmin):
-    """Admin para permissões de grupos."""
+@admin.register(ADUser)
+class ADUserAdmin(admin.ModelAdmin):
+    """Admin para usuários do AD."""
     
     list_display = [
-        'group_display',
-        'permission_display',
-        'granted_at',
-        'granted_by'
+        'display_name',
+        'username',
+        'country_display',
+        'email',
+        'department',
+        'can_create_suppliers',
+        'has_individual_permissions',
+        'is_active',
+        'last_sync'
     ]
     
     list_filter = [
-        'ad_group__country_code',
-        'permission_code',
-        'granted_at'
+        'country_code',
+        'is_active',
+        'has_individual_permissions',
+        'can_create_suppliers',
+        'can_edit_suppliers',
+        'can_delete_suppliers',
+        'department',
+        'last_sync'
     ]
     
     search_fields = [
-        'ad_group__ad_group_name',
-        'permission_code'
+        'username',
+        'email',
+        'display_name',
+        'first_name',
+        'last_name',
+        'department',
+        'title'
     ]
     
-    readonly_fields = ['granted_at', 'granted_by']
+    readonly_fields = [
+        'last_sync',
+        'created_at'
+    ]
+    
+    filter_horizontal = ['groups']
     
     fieldsets = (
-        ('Grupo e Permissão', {
-            'fields': ('ad_group', 'permission_code')
+        ('Informações do Usuário', {
+            'fields': (
+                'country_code',
+                'username',
+                'email',
+                'first_name',
+                'last_name',
+                'display_name',
+                'distinguished_name'
+            )
+        }),
+        ('Informações Profissionais', {
+            'fields': (
+                'department',
+                'title'
+            )
+        }),
+        ('Grupos', {
+            'fields': ('groups',)
+        }),
+        ('Permissões Individuais', {
+            'fields': (
+                'has_individual_permissions',
+                'can_create_suppliers',
+                'can_edit_suppliers',
+                'can_delete_suppliers'
+            ),
+            'description': 'Estas permissões sobrescrevem as permissões do grupo quando "Tem permissões individuais" está marcado.'
+        }),
+        ('Status e Sincronização', {
+            'fields': (
+                'is_active',
+                'last_sync'
+            )
         }),
         ('Auditoria', {
-            'fields': ('granted_at', 'granted_by'),
+            'fields': ('created_at',),
             'classes': ('collapse',)
         }),
     )
     
-    def group_display(self, obj):
-        """Exibe nome do grupo."""
-        return f"{obj.ad_group.get_country_code_display()} - {obj.ad_group.ad_group_name}"
-    group_display.short_description = 'Grupo'
-    
-    def permission_display(self, obj):
-        """Exibe permissão formatada."""
-        return obj.get_permission_code_display()
-    permission_display.short_description = 'Permissão'
-    
-    def save_model(self, request, obj, form, change):
-        """Salva o modelo e registra quem concedeu."""
-        if not change:
-            obj.granted_by = request.user
-        super().save_model(request, obj, form, change)
+    def country_display(self, obj):
+        """Exibe país com bandeira."""
+        return obj.get_country_code_display()
+    country_display.short_description = 'País'
 
 
-@admin.register(UserPermission)
-class UserPermissionAdmin(admin.ModelAdmin):
-    """Admin para permissões de usuários."""
+@admin.register(SystemDefaultConfig)
+class SystemDefaultConfigAdmin(admin.ModelAdmin):
+    """Admin para configuração padrão do sistema."""
     
     list_display = [
-        'user_display',
-        'permission_display',
-        'status_display',
-        'granted_at',
-        'granted_by'
+        '__str__',
+        'ad_enabled',
+        'smtp_enabled',
+        'updated_at'
     ]
     
-    list_filter = [
-        'is_granted',
-        'permission_code',
-        'granted_at'
-    ]
-    
-    search_fields = [
-        'user__username',
-        'user__email',
-        'user__first_name',
-        'user__last_name',
-        'permission_code'
-    ]
-    
-    readonly_fields = ['granted_at', 'granted_by']
+    readonly_fields = ['created_at', 'updated_at']
     
     fieldsets = (
-        ('Usuário e Permissão', {
-            'fields': ('user', 'permission_code', 'is_granted')
+        ('Configurações AD Padrão', {
+            'fields': (
+                'ad_enabled',
+                'ad_server',
+                'ad_port',
+                'ad_use_ssl',
+                'ad_use_tls',
+                'ad_bind_user_dn',
+                'ad_bind_password',
+                'ad_base_dn',
+                'ad_user_search_base',
+                'ad_search_filter'
+            )
+        }),
+        ('Configurações SMTP Padrão', {
+            'fields': (
+                'smtp_enabled',
+                'smtp_host',
+                'smtp_port',
+                'smtp_use_tls',
+                'smtp_username',
+                'smtp_password',
+                'smtp_from_email'
+            )
         }),
         ('Auditoria', {
-            'fields': ('granted_at', 'granted_by'),
+            'fields': ('created_at', 'updated_at', 'updated_by'),
             'classes': ('collapse',)
         }),
     )
     
-    def user_display(self, obj):
-        """Exibe nome do usuário."""
-        return obj.user.get_full_name() or obj.user.username
-    user_display.short_description = 'Usuário'
+    def has_add_permission(self, request):
+        """Permite apenas 1 configuração padrão."""
+        return not SystemDefaultConfig.objects.exists()
     
-    def permission_display(self, obj):
-        """Exibe permissão formatada."""
-        return obj.get_permission_code_display()
-    permission_display.short_description = 'Permissão'
-    
-    def status_display(self, obj):
-        """Exibe status da permissão."""
-        if obj.is_granted:
-            return format_html('<span style="color: green;">✅ Concedida</span>')
-        return format_html('<span style="color: red;">❌ Revogada</span>')
-    status_display.short_description = 'Status'
-    
-    def save_model(self, request, obj, form, change):
-        """Salva o modelo e registra quem modificou."""
-        if not change:
-            obj.granted_by = request.user
-        super().save_model(request, obj, form, change)
+    def has_delete_permission(self, request, obj=None):
+        """Não permite deletar a configuração padrão."""
+        return False
