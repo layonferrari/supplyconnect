@@ -614,6 +614,54 @@ class SystemDefaultConfigForm(forms.ModelForm):
         
         return instance
 
+class ADUserPermissionsForm(forms.ModelForm):
+    """Formulário para editar permissões individuais de um usuário do AD."""
+    
+    class Meta:
+        model = None  # Será definido dinamicamente
+        fields = [
+            'can_login',
+            'can_register_suppliers',
+            'can_handle_complaints',
+            'can_view_dashboards',
+            'can_view_contracts',
+            'can_manage_contracts',
+        ]
+        
+        labels = {
+            'can_login': _('Pode Fazer Login'),
+            'can_register_suppliers': _('Pode Cadastrar Fornecedores'),
+            'can_handle_complaints': _('Pode Tratar Reclamações'),
+            'can_view_dashboards': _('Pode Visualizar Dashboards'),
+            'can_view_contracts': _('Pode Visualizar Contratos'),
+            'can_manage_contracts': _('Pode Gerenciar Contratos'),
+        }
+        
+        widgets = {
+            'can_login': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'can_register_suppliers': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'can_handle_complaints': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'can_view_dashboards': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'can_view_contracts': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'can_manage_contracts': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+        
+        help_texts = {
+            'can_login': _('Permite que o usuário faça login no sistema'),
+            'can_register_suppliers': _('Permite cadastrar novos fornecedores'),
+            'can_handle_complaints': _('Permite visualizar e gerenciar reclamações'),
+            'can_view_dashboards': _('Permite acessar os dashboards do sistema'),
+            'can_view_contracts': _('Permite visualizar contratos existentes'),
+            'can_manage_contracts': _('Permite criar, editar e excluir contratos'),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        # Importar ADUser dinamicamente para evitar circular import
+        from .models import ADUser
+        self._meta.model = ADUser
+        super().__init__(*args, **kwargs)
+
+
 class AdminLoginForm(forms.Form):
     """Formulário de login para administradores (Global e País)."""
     

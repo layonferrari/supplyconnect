@@ -36,5 +36,6 @@ urlpatterns = [
     path('country/suppliers/sync-groups/', views.country_ad_sync_groups, name='country_ad_sync_groups'),
     path('country/suppliers/group/<int:group_id>/toggle/', views.country_toggle_group_permission, name='country_toggle_group_permission'),
     path('country/suppliers/user/<int:user_id>/toggle/', views.country_toggle_user_permission, name='country_toggle_user_permission'),
+    path('country/suppliers/user/<int:user_id>/edit/', views.country_edit_user_permissions, name='country_edit_user_permissions'),
     path('country/ad/sync-users/', views.country_ad_sync_users, name='country_ad_sync_users'),
 ]

@@ -1,6 +1,6 @@
 # adminpanel/forms.py
 # ==========================================================
-# FORMULÁRIOS DE CONFIGURAÇÃO - VERSÃO FINAL
+# FORMULÁRIOS DO ADMINPANEL - VERSÃO SIMPLIFICADA
 # ==========================================================
 
 from django import forms
@@ -54,13 +54,10 @@ class LdapDirectoryForm(forms.ModelForm):
 
 
 # ==========================================================
-# ✉️ CONFIGURAÇÃO SMTP (COM BLOQUEIO CONDICIONAL)
+# ✉️ CONFIGURAÇÃO SMTP
 # ==========================================================
 class SmtpConfigurationForm(forms.ModelForm):
-    """
-    Formulário de configuração do servidor SMTP com suporte
-    ao bloqueio quando o país utiliza o SMTP global.
-    """
+    """Formulário de configuração do servidor SMTP."""
     password = forms.CharField(
         label="Senha do E-mail",
         widget=forms.PasswordInput(attrs={
@@ -89,15 +86,9 @@ class SmtpConfigurationForm(forms.ModelForm):
             'use_tls': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
-    def disable_fields(self):
-        """Desativa todos os campos do formulário (modo somente leitura)."""
-        for field in self.fields.values():
-            field.widget.attrs['readonly'] = True
-            field.widget.attrs['disabled'] = True
-
 
 # ==========================================================
-# 🔒 SSL (SEM ALTERAÇÕES)
+# 🔒 SSL
 # ==========================================================
 class SslConfigForm(forms.ModelForm):
     class Meta:

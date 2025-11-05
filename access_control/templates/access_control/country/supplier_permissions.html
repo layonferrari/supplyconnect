@@ -1,34 +1,44 @@
 {% extends 'access_control/base/panel_base.html' %}
 {% load i18n %}
 
-{% block title %}{% trans "Permissões de Fornecedores" %}{% endblock %}
-{% block page_title %}{% trans "Gerenciar Permissões de Fornecedores" %}{% endblock %}
+{% block title %}{% trans "Permissões de Acesso ao Sistema" %}{% endblock %}
+{% block page_title %}{% trans "Gerenciar Permissões de Acesso" %}{% endblock %}
 
 {% block content %}
 <div style="max-width: 1400px; margin: 0 auto;">
     
-    <!-- Cabeçalho com botão de sincronizar -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; background: linear-gradient(135deg, #005B9A 0%, #0091DA 100%); padding: 20px; border-radius: 12px; color: white;">
+    <!-- Botão Voltar ao Dashboard -->
+    <div style="margin-bottom: 20px;">
+        <a href="{% url 'access_control:country_dashboard' %}" 
+           style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; background: #f1f5f9; color: #475569; border-radius: 8px; text-decoration: none; font-weight: 500; transition: all 0.2s; border: 1px solid #cbd5e1;">
+            ← {% trans "Voltar ao Dashboard" %}
+        </a>
+    </div>
+
+    <!-- Cabeçalho com botões de sincronização -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; background: linear-gradient(135deg, #005B9A 0%, #0091DA 100%); padding: 20px; border-radius: 12px; color: white; flex-wrap: wrap; gap: 15px;">
         <div>
-            <h2 style="margin: 0; font-size: 1.5rem;">🔐 {% trans "Permissões de Fornecedores" %}</h2>
+            <h2 style="margin: 0; font-size: 1.5rem;">🔐 {% trans "Controle de Acesso ao Sistema" %}</h2>
             <p style="margin: 8px 0 0 0; opacity: 0.9;">{{ country_name }} ({{ country_code }})</p>
         </div>
         
-        {% if has_ad_config %}
-        <a href="{% url 'access_control:country_ad_sync_groups' %}" 
-           style="background: white; color: #0091DA; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
-            🔄 {% trans "Sincronizar Grupos do AD" %}
-        </a>
-        <a href="{% url 'access_control:country_ad_sync_users' %}" 
-            style="background: #8b5cf6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
-                👤 {% trans "Sincronizar Usuários do AD" %}
-        </a>
-        {% else %}
-        <a href="{% url 'access_control:country_ad_config' %}" 
-           style="background: #fef3c7; color: #92400e; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
-            ⚠️ {% trans "Configurar AD Primeiro" %}
-        </a>
-        {% endif %}
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            {% if has_ad_config %}
+            <a href="{% url 'access_control:country_ad_sync_groups' %}" 
+               style="background: white; color: #0091DA; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
+                🔄 {% trans "Sincronizar Grupos" %}
+            </a>
+            <a href="{% url 'access_control:country_ad_sync_users' %}" 
+                style="background: #8b5cf6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
+                    👤 {% trans "Sincronizar Usuários" %}
+            </a>
+            {% else %}
+            <a href="{% url 'access_control:country_ad_config' %}" 
+               style="background: #fef3c7; color: #92400e; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                ⚠️ {% trans "Configurar AD Primeiro" %}
+            </a>
+            {% endif %}
+        </div>
     </div>
 
     <!-- Estatísticas -->
@@ -38,11 +48,10 @@
             <div style="font-size: 2rem; font-weight: bold; color: #0091DA;">{{ total_groups }}</div>
         </div>
         <div style="background: white; padding: 20px; border-radius: 12px; border-left: 4px solid #10b981;">
-            <div style="color: #64748b; font-size: 0.9rem; margin-bottom: 8px;">{% trans "Grupos com Permissão" %}</div>
+            <div style="color: #64748b; font-size: 0.9rem; margin-bottom: 8px;">{% trans "Grupos com Acesso" %}</div>
             <div style="font-size: 2rem; font-weight: bold; color: #10b981;">
                 {{ groups_with_permission }}
             </div>
-
         </div>
         <div style="background: white; padding: 20px; border-radius: 12px; border-left: 4px solid #8b5cf6;">
             <div style="color: #64748b; font-size: 0.9rem; margin-bottom: 8px;">{% trans "Total de Usuários" %}</div>
@@ -65,7 +74,7 @@
                             <th style="padding: 12px; text-align: left; font-weight: 600; color: #475569;">{% trans "Grupo" %}</th>
                             <th style="padding: 12px; text-align: left; font-weight: 600; color: #475569;">{% trans "Descrição" %}</th>
                             <th style="padding: 12px; text-align: center; font-weight: 600; color: #475569;">{% trans "Membros" %}</th>
-                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #475569; width: 180px;">{% trans "Pode Criar Fornecedores" %}</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #475569; width: 180px;">{% trans "Pode Fazer Login" %}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -90,7 +99,7 @@
                                         cursor: pointer; 
                                         font-weight: 600;
                                         transition: all 0.2s;
-                                        {% if group.can_create_suppliers %}
+                                        {% if group.can_login %}
                                             background: #10b981; 
                                             color: white;
                                         {% else %}
@@ -98,10 +107,10 @@
                                             color: #64748b;
                                         {% endif %}
                                     ">
-                                        {% if group.can_create_suppliers %}
-                                            ✅ {% trans "Ativo" %}
+                                        {% if group.can_login %}
+                                            ✅ {% trans "Permitido" %}
                                         {% else %}
-                                            ⬜ {% trans "Inativo" %}
+                                            ⬜ {% trans "Bloqueado" %}
                                         {% endif %}
                                     </button>
                                 </form>
@@ -117,7 +126,7 @@
                 <p style="font-size: 1.1rem; margin-bottom: 8px;">{% trans "Nenhum grupo encontrado" %}</p>
                 <p style="font-size: 0.9rem;">
                     {% if has_ad_config %}
-                        {% trans "Clique em 'Sincronizar Grupos do AD' acima para importar os grupos." %}
+                        {% trans "Clique em 'Sincronizar Grupos' acima para importar os grupos." %}
                     {% else %}
                         {% trans "Configure o Active Directory primeiro." %}
                     {% endif %}
@@ -130,12 +139,14 @@
     <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
         <h3 style="color: #0f172a; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
             <span>👤</span>
-            <span>{% trans "Usuários com Permissões Individuais" %}</span>
+            <span>{% trans "Usuários do Active Directory" %}</span>
         </h3>
         
         <div style="background: #eff6ff; padding: 16px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #3b82f6;">
             <strong style="color: #1e40af;">💡 {% trans "Dica:" %}</strong>
-            <span style="color: #1e40af;">{% trans "Permissões individuais sobrescrevem as permissões de grupo." %}</span>
+            <span style="color: #1e40af;">
+                {% trans "Clique no NOME do usuário para configurar permissões detalhadas. Use o botão ao lado apenas para ativar/desativar login rápido." %}
+            </span>
         </div>
         
         {% if ad_users %}
@@ -146,17 +157,23 @@
                             <th style="padding: 12px; text-align: left; font-weight: 600; color: #475569;">{% trans "Nome" %}</th>
                             <th style="padding: 12px; text-align: left; font-weight: 600; color: #475569;">{% trans "E-mail" %}</th>
                             <th style="padding: 12px; text-align: left; font-weight: 600; color: #475569;">{% trans "Departamento" %}</th>
-                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #475569; width: 180px;">{% trans "Pode Criar Fornecedores" %}</th>
+                            <th style="padding: 12px; text-align: center; font-weight: 600; color: #475569; width: 180px;">{% trans "Pode Fazer Login" %}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for user in ad_users %}
                         <tr style="border-bottom: 1px solid #e2e8f0; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
                             <td style="padding: 12px;">
-                                <strong style="color: #0f172a;">{{ user.display_name }}</strong>
+                                <a href="{% url 'access_control:country_edit_user_permissions' user.id %}" 
+                                   style="color: #0091DA; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;"
+                                   onmouseover="this.style.color='#005B9A'; this.style.textDecoration='underline'"
+                                   onmouseout="this.style.color='#0091DA'; this.style.textDecoration='none'">
+                                    <span>{{ user.display_name }}</span>
+                                    <span style="font-size: 0.9rem;">✏️</span>
+                                </a>
                                 {% if user.has_individual_permissions %}
                                     <span style="background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; margin-left: 8px;">
-                                        ⭐ {% trans "Individual" %}
+                                        ⭐ {% trans "Personalizado" %}
                                     </span>
                                 {% endif %}
                             </td>
@@ -176,7 +193,7 @@
                                         cursor: pointer; 
                                         font-weight: 600;
                                         transition: all 0.2s;
-                                        {% if user.can_create_suppliers %}
+                                        {% if user.can_login %}
                                             background: #10b981; 
                                             color: white;
                                         {% else %}
@@ -184,10 +201,10 @@
                                             color: #64748b;
                                         {% endif %}
                                     ">
-                                        {% if user.can_create_suppliers %}
-                                            ✅ {% trans "Ativo" %}
+                                        {% if user.can_login %}
+                                            ✅ {% trans "Permitido" %}
                                         {% else %}
-                                            ⬜ {% trans "Inativo" %}
+                                            ⬜ {% trans "Bloqueado" %}
                                         {% endif %}
                                     </button>
                                 </form>
@@ -200,7 +217,14 @@
         {% else %}
             <div style="text-align: center; padding: 40px; color: #94a3b8;">
                 <div style="font-size: 3rem; margin-bottom: 16px;">👤</div>
-                <p style="font-size: 1.1rem;">{% trans "Nenhum usuário com permissões individuais" %}</p>
+                <p style="font-size: 1.1rem; margin-bottom: 8px;">{% trans "Nenhum usuário encontrado" %}</p>
+                <p style="font-size: 0.9rem;">
+                    {% if has_ad_config %}
+                        {% trans "Clique em 'Sincronizar Usuários' acima para importar os usuários do AD." %}
+                    {% else %}
+                        {% trans "Configure o Active Directory primeiro." %}
+                    {% endif %}
+                </p>
             </div>
         {% endif %}
     </div>

@@ -378,10 +378,16 @@ class ADGroup(models.Model):
     description = models.TextField(blank=True, null=True)
     member_count = models.IntegerField(default=0)
     
-    # Permissões
-    can_create_suppliers = models.BooleanField(default=False, verbose_name="Pode criar fornecedores")
-    can_edit_suppliers = models.BooleanField(default=False, verbose_name="Pode editar fornecedores")
-    can_delete_suppliers = models.BooleanField(default=False, verbose_name="Pode excluir fornecedores")
+    # ===== PERMISSÕES DO GRUPO =====
+    # Permissão principal: pode fazer login no sistema?
+    can_login = models.BooleanField(default=False, verbose_name='Pode Fazer Login')
+    
+    # Permissões granulares
+    can_register_suppliers = models.BooleanField(default=False, verbose_name='Pode Cadastrar Fornecedores')
+    can_handle_complaints = models.BooleanField(default=False, verbose_name='Pode Tratar Reclamações')
+    can_view_dashboards = models.BooleanField(default=False, verbose_name='Pode Visualizar Dashboards')
+    can_view_contracts = models.BooleanField(default=False, verbose_name='Pode Visualizar Contratos')
+    can_manage_contracts = models.BooleanField(default=False, verbose_name='Pode Gerenciar Contratos')
     
     # Auditoria
     last_sync = models.DateTimeField(auto_now=True)
@@ -395,7 +401,6 @@ class ADGroup(models.Model):
         unique_together = ['country_code', 'name']
     
     def __str__(self):
-        return f"{self.country_code} - {self.name}"
         return f"{self.country_code} - {self.name}"
 
 
@@ -414,11 +419,19 @@ class ADUser(models.Model):
     # Relacionamento com grupos
     groups = models.ManyToManyField(ADGroup, related_name='users', blank=True)
     
-    # Permissões individuais (sobrescrevem permissões do grupo)
-    can_create_suppliers = models.BooleanField(default=False, verbose_name="Pode criar fornecedores")
-    can_edit_suppliers = models.BooleanField(default=False, verbose_name="Pode editar fornecedores")
-    can_delete_suppliers = models.BooleanField(default=False, verbose_name="Pode excluir fornecedores")
-    has_individual_permissions = models.BooleanField(default=False, verbose_name="Tem permissões individuais")
+    # ===== PERMISSÕES INDIVIDUAIS =====
+    # Permissão principal: pode fazer login no sistema?
+    can_login = models.BooleanField(default=False, verbose_name='Pode Fazer Login')
+    
+    # Permissões granulares (sobrescrevem permissões do grupo quando has_individual_permissions=True)
+    can_register_suppliers = models.BooleanField(default=False, verbose_name='Pode Cadastrar Fornecedores')
+    can_handle_complaints = models.BooleanField(default=False, verbose_name='Pode Tratar Reclamações')
+    can_view_dashboards = models.BooleanField(default=False, verbose_name='Pode Visualizar Dashboards')
+    can_view_contracts = models.BooleanField(default=False, verbose_name='Pode Visualizar Contratos')
+    can_manage_contracts = models.BooleanField(default=False, verbose_name='Pode Gerenciar Contratos')
+    
+    # Flag que indica se este usuário tem permissões individuais configuradas
+    has_individual_permissions = models.BooleanField(default=False, verbose_name='Tem permissões individuais')
     
     # Auditoria
     last_sync = models.DateTimeField(auto_now=True)
@@ -438,3 +451,44 @@ class ADUser(models.Model):
         if self.first_name and self.last_name:
             return f"{self.first_name} {self.last_name}"
         return self.display_name or self.username
+    
+    def get_effective_permissions(self):
+        """
+        Retorna as permissões efetivas do usuário.
+        Se tem permissões individuais, usa elas. Senão, usa as permissões dos grupos.
+        """
+        if self.has_individual_permissions:
+            return {
+                'can_login': self.can_login,
+                'can_register_suppliers': self.can_register_suppliers,
+                'can_handle_complaints': self.can_handle_complaints,
+                'can_view_dashboards': self.can_view_dashboards,
+                'can_view_contracts': self.can_view_contracts,
+                'can_manage_contracts': self.can_manage_contracts,
+            }
+        
+        # Combina permissões de todos os grupos (OR lógico)
+        perms = {
+            'can_login': False,
+            'can_register_suppliers': False,
+            'can_handle_complaints': False,
+            'can_view_dashboards': False,
+            'can_view_contracts': False,
+            'can_manage_contracts': False,
+        }
+        
+        for group in self.groups.all():
+            if group.can_login:
+                perms['can_login'] = True
+            if group.can_register_suppliers:
+                perms['can_register_suppliers'] = True
+            if group.can_handle_complaints:
+                perms['can_handle_complaints'] = True
+            if group.can_view_dashboards:
+                perms['can_view_dashboards'] = True
+            if group.can_view_contracts:
+                perms['can_view_contracts'] = True
+            if group.can_manage_contracts:
+                perms['can_manage_contracts'] = True
+        
+        return perms

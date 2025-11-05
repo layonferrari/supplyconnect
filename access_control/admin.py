@@ -164,9 +164,9 @@ class ADGroupAdmin(admin.ModelAdmin):
         'name',
         'country_display',
         'member_count',
-        'can_create_suppliers',
-        'can_edit_suppliers',
-        'can_delete_suppliers',
+        'can_login',
+        'can_register_suppliers',
+        'can_handle_complaints',
         'is_active',
         'last_sync'
     ]
@@ -174,9 +174,9 @@ class ADGroupAdmin(admin.ModelAdmin):
     list_filter = [
         'country_code',
         'is_active',
-        'can_create_suppliers',
-        'can_edit_suppliers',
-        'can_delete_suppliers',
+        'can_login',
+        'can_register_suppliers',
+        'can_handle_complaints',
         'last_sync'
     ]
     
@@ -201,11 +201,14 @@ class ADGroupAdmin(admin.ModelAdmin):
                 'member_count'
             )
         }),
-        ('Permissões de Fornecedores', {
+        ('Permissões', {
             'fields': (
-                'can_create_suppliers',
-                'can_edit_suppliers',
-                'can_delete_suppliers'
+                'can_login',
+                'can_register_suppliers',
+                'can_handle_complaints',
+                'can_view_dashboards',
+                'can_view_contracts',
+                'can_manage_contracts'
             )
         }),
         ('Status e Sincronização', {
@@ -236,7 +239,7 @@ class ADUserAdmin(admin.ModelAdmin):
         'country_display',
         'email',
         'department',
-        'can_create_suppliers',
+        'can_login',
         'has_individual_permissions',
         'is_active',
         'last_sync'
@@ -246,9 +249,9 @@ class ADUserAdmin(admin.ModelAdmin):
         'country_code',
         'is_active',
         'has_individual_permissions',
-        'can_create_suppliers',
-        'can_edit_suppliers',
-        'can_delete_suppliers',
+        'can_login',
+        'can_register_suppliers',
+        'can_handle_complaints',
         'department',
         'last_sync'
     ]
@@ -294,9 +297,12 @@ class ADUserAdmin(admin.ModelAdmin):
         ('Permissões Individuais', {
             'fields': (
                 'has_individual_permissions',
-                'can_create_suppliers',
-                'can_edit_suppliers',
-                'can_delete_suppliers'
+                'can_login',
+                'can_register_suppliers',
+                'can_handle_complaints',
+                'can_view_dashboards',
+                'can_view_contracts',
+                'can_manage_contracts'
             ),
             'description': 'Estas permissões sobrescrevem as permissões do grupo quando "Tem permissões individuais" está marcado.'
         }),

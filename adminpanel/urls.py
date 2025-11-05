@@ -1,6 +1,8 @@
 from django.urls import path
 from . import views
 
+app_name = 'adminpanel'
+
 urlpatterns = [
     path('', views.index, name='adminpanel_index'),
     path('ldap/', views.ldap_config, name='ldap_config'),

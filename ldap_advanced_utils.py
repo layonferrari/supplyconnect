@@ -342,7 +342,7 @@ def test_ad_connection(ldap_config):
     
 def list_ad_users(ldap_config):
     """
-    Lista todos os usuários do Active Directory.
+    Lista todos os usuários ATIVOS do Active Directory.
 
     Args:
         ldap_config: Instância de LdapDirectory com as configurações.

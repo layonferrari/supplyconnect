@@ -1,77 +1,87 @@
+"""
+adminpanel/views.py
+Views para configuração de LDAP, SMTP e SSL.
+"""
+
 from django.shortcuts import render, redirect
-# Comentado para testes sem autenticação
-# from django.contrib.auth.decorators import login_required, user_passes_test
-from .models import LdapConfig, SmtpConfig, SslConfig
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.utils.translation import gettext as _
+from .models import LdapDirectory, SmtpConfiguration, SslConfig
 from .forms import LdapDirectoryForm, SmtpConfigurationForm, SslConfigForm
 
 
-# Comentado para desativar verificação de admin_local temporariamente
-# def admin_only(user):
-#     return getattr(user, 'is_admin_local', False)
-
-
-# ===============================
-# ⚙️ PÁGINA PRINCIPAL DO PAINEL
-# ===============================
-
-# @login_required
-# @user_passes_test(admin_only)
+@login_required
 def index(request):
+    """Página inicial do painel administrativo."""
     return render(request, 'adminpanel/index.html')
 
 
-# ===============================
-# 🔐 CONFIGURAÇÃO LDAP
-# ===============================
-
-# @login_required
-# @user_passes_test(admin_only)
+@login_required
 def ldap_config(request):
-    config = LdapConfig.objects.first()
-    form = LdapConfigForm(request.POST or None, instance=config)
-
-    if request.method == 'POST' and form.is_valid():
-        instance = form.save(commit=False)
-        if request.POST.get('bind_password'):
-            instance.set_password(request.POST['bind_password'])
-        instance.save()
-        return redirect('adminpanel_index')
-
+    """Configuração do LDAP/Active Directory."""
+    # Tenta pegar uma configuração existente ou cria uma nova
+    ldap = LdapDirectory.objects.first()
+    
+    if request.method == 'POST':
+        form = LdapDirectoryForm(request.POST, instance=ldap)
+        if form.is_valid():
+            config = form.save(commit=False)
+            config.created_by = request.user
+            config.updated_by = request.user
+            
+            # Criptografa a senha se foi fornecida
+            password = request.POST.get('bind_password')
+            if password:
+                config.set_password(password)
+            
+            config.save()
+            messages.success(request, _('Configuração LDAP salva com sucesso!'))
+            return redirect('adminpanel:ldap_config')
+    else:
+        form = LdapDirectoryForm(instance=ldap)
+    
     return render(request, 'adminpanel/ldap_config.html', {'form': form})
 
 
-# ===============================
-# ✉️ CONFIGURAÇÃO SMTP
-# ===============================
-
-# @login_required
-# @user_passes_test(admin_only)
+@login_required
 def smtp_config(request):
-    config = SmtpConfig.objects.first()
-    form = SmtpConfigForm(request.POST or None, instance=config)
-
-    if request.method == 'POST' and form.is_valid():
-        instance = form.save(commit=False)
-        if request.POST.get('password'):
-            instance.set_password(request.POST['password'])
-        instance.save()
-        return redirect('adminpanel_index')
-
+    """Configuração do servidor SMTP."""
+    # Tenta pegar uma configuração existente ou cria uma nova
+    smtp = SmtpConfiguration.objects.first()
+    
+    if request.method == 'POST':
+        form = SmtpConfigurationForm(request.POST, instance=smtp)
+        if form.is_valid():
+            config = form.save(commit=False)
+            config.created_by = request.user
+            
+            # Criptografa a senha se foi fornecida
+            password = request.POST.get('password')
+            if password:
+                config.set_password(password)
+            
+            config.save()
+            messages.success(request, _('Configuração SMTP salva com sucesso!'))
+            return redirect('adminpanel:smtp_config')
+    else:
+        form = SmtpConfigurationForm(instance=smtp)
+    
     return render(request, 'adminpanel/smtp_config.html', {'form': form})
 
 
-# ===============================
-# 🔒 CONFIGURAÇÃO SSL
-# ===============================
-
-# @login_required
-# @user_passes_test(admin_only)
+@login_required
 def ssl_config(request):
-    config = SslConfig.objects.first()
-    form = SslConfigForm(request.POST or None, request.FILES or None, instance=config)
-
-    if request.method == 'POST' and form.is_valid():
-        form.save()
-        return redirect('adminpanel_index')
-
+    """Configuração de certificados SSL."""
+    ssl = SslConfig.objects.first()
+    
+    if request.method == 'POST':
+        form = SslConfigForm(request.POST, request.FILES, instance=ssl)
+        if form.is_valid():
+            form.save()
+            messages.success(request, _('Certificados SSL salvos com sucesso!'))
+            return redirect('adminpanel:ssl_config')
+    else:
+        form = SslConfigForm(instance=ssl)
+    
     return render(request, 'adminpanel/ssl_config.html', {'form': form})

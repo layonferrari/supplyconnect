@@ -1,0 +1,340 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Editar Permissões" %} - {{ ad_user.display_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class="fas fa-user-shield text-primary"></i>
+                {% trans "Editar Permissões do Usuário" %}
+            </h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'access_control:country_dashboard' %}">{% trans "Dashboard" %}</a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'access_control:country_supplier_permissions' %}">{% trans "Permissões de Fornecedores" %}</a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page">
+                        {% trans "Editar Permissões" %}
+                    </li>
+                </ol>
+            </nav>
+        </div>
+        <div>
+            <a href="{% url 'access_control:country_supplier_permissions' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> {% trans "Voltar" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Informações do Usuário -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-user"></i>
+                {% trans "Informações do Usuário" %}
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">{% trans "Nome" %}:</dt>
+                        <dd class="col-sm-8">{{ ad_user.display_name }}</dd>
+
+                        <dt class="col-sm-4">{% trans "Username" %}:</dt>
+                        <dd class="col-sm-8">{{ ad_user.username }}</dd>
+
+                        <dt class="col-sm-4">{% trans "E-mail" %}:</dt>
+                        <dd class="col-sm-8">{{ ad_user.email|default:"—" }}</dd>
+                    </dl>
+                </div>
+                <div class="col-md-6">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">{% trans "Departamento" %}:</dt>
+                        <dd class="col-sm-8">{{ ad_user.department|default:"—" }}</dd>
+
+                        <dt class="col-sm-4">{% trans "Cargo" %}:</dt>
+                        <dd class="col-sm-8">{{ ad_user.title|default:"—" }}</dd>
+
+                        <dt class="col-sm-4">{% trans "País" %}:</dt>
+                        <dd class="col-sm-8">{{ country_name }}</dd>
+                    </dl>
+                </div>
+            </div>
+
+            {% if ad_user.groups.exists %}
+            <hr>
+            <div class="mt-3">
+                <strong>{% trans "Grupos do AD" %}:</strong>
+                <div class="mt-2">
+                    {% for group in ad_user.groups.all %}
+                    <span class="badge bg-info text-white me-1">{{ group.name }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Alertas de Permissões Herdadas -->
+    {% if not ad_user.has_individual_permissions and group_permissions %}
+    <div class="alert alert-info" role="alert">
+        <h5 class="alert-heading">
+            <i class="fas fa-info-circle"></i>
+            {% trans "Permissões Herdadas dos Grupos" %}
+        </h5>
+        <p class="mb-2">
+            {% trans "Este usuário herda as seguintes permissões de seus grupos do AD:" %}
+        </p>
+        <ul class="mb-0">
+            {% if group_permissions.can_login %}
+            <li><strong>{% trans "Pode Fazer Login" %}</strong></li>
+            {% endif %}
+            {% if group_permissions.can_register_suppliers %}
+            <li>{% trans "Pode Cadastrar Fornecedores" %}</li>
+            {% endif %}
+            {% if group_permissions.can_handle_complaints %}
+            <li>{% trans "Pode Tratar Reclamações" %}</li>
+            {% endif %}
+            {% if group_permissions.can_view_dashboards %}
+            <li>{% trans "Pode Visualizar Dashboards" %}</li>
+            {% endif %}
+            {% if group_permissions.can_view_contracts %}
+            <li>{% trans "Pode Visualizar Contratos" %}</li>
+            {% endif %}
+            {% if group_permissions.can_manage_contracts %}
+            <li>{% trans "Pode Gerenciar Contratos" %}</li>
+            {% endif %}
+        </ul>
+        <hr>
+        <p class="mb-0">
+            <small>
+                <i class="fas fa-lightbulb"></i>
+                {% trans "Ao configurar permissões individuais abaixo, elas sobrescreverão as permissões herdadas dos grupos." %}
+            </small>
+        </p>
+    </div>
+    {% endif %}
+
+    <!-- Formulário de Permissões -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-key"></i>
+                {% trans "Configurar Permissões Individuais" %}
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="post" id="permissionsForm">
+                {% csrf_token %}
+
+                <!-- Mensagens de erro do formulário -->
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger" role="alert">
+                    {{ form.non_field_errors }}
+                </div>
+                {% endif %}
+
+                <!-- Permissão Principal: Login -->
+                <div class="card mb-3 border-primary">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0 text-primary">
+                            <i class="fas fa-sign-in-alt"></i>
+                            {% trans "Acesso ao Sistema" %}
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check form-switch">
+                            {{ form.can_login }}
+                            <label class="form-check-label" for="{{ form.can_login.id_for_label }}">
+                                <strong>{{ form.can_login.label }}</strong>
+                                <br>
+                                <small class="text-muted">{{ form.can_login.help_text }}</small>
+                            </label>
+                        </div>
+                        {% if form.can_login.errors %}
+                        <div class="text-danger mt-2">
+                            <small>{{ form.can_login.errors }}</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Permissões de Fornecedores -->
+                <div class="card mb-3 border-info">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0 text-info">
+                            <i class="fas fa-building"></i>
+                            {% trans "Gestão de Fornecedores" %}
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check form-switch mb-3">
+                            {{ form.can_register_suppliers }}
+                            <label class="form-check-label" for="{{ form.can_register_suppliers.id_for_label }}">
+                                {{ form.can_register_suppliers.label }}
+                                <br>
+                                <small class="text-muted">{{ form.can_register_suppliers.help_text }}</small>
+                            </label>
+                        </div>
+                        {% if form.can_register_suppliers.errors %}
+                        <div class="text-danger mb-3">
+                            <small>{{ form.can_register_suppliers.errors }}</small>
+                        </div>
+                        {% endif %}
+
+                        <div class="form-check form-switch">
+                            {{ form.can_handle_complaints }}
+                            <label class="form-check-label" for="{{ form.can_handle_complaints.id_for_label }}">
+                                {{ form.can_handle_complaints.label }}
+                                <br>
+                                <small class="text-muted">{{ form.can_handle_complaints.help_text }}</small>
+                            </label>
+                        </div>
+                        {% if form.can_handle_complaints.errors %}
+                        <div class="text-danger mt-2">
+                            <small>{{ form.can_handle_complaints.errors }}</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Permissões de Visualização -->
+                <div class="card mb-3 border-warning">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0 text-warning">
+                            <i class="fas fa-eye"></i>
+                            {% trans "Visualização e Relatórios" %}
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check form-switch mb-3">
+                            {{ form.can_view_dashboards }}
+                            <label class="form-check-label" for="{{ form.can_view_dashboards.id_for_label }}">
+                                {{ form.can_view_dashboards.label }}
+                                <br>
+                                <small class="text-muted">{{ form.can_view_dashboards.help_text }}</small>
+                            </label>
+                        </div>
+                        {% if form.can_view_dashboards.errors %}
+                        <div class="text-danger mb-3">
+                            <small>{{ form.can_view_dashboards.errors }}</small>
+                        </div>
+                        {% endif %}
+
+                        <div class="form-check form-switch">
+                            {{ form.can_view_contracts }}
+                            <label class="form-check-label" for="{{ form.can_view_contracts.id_for_label }}">
+                                {{ form.can_view_contracts.label }}
+                                <br>
+                                <small class="text-muted">{{ form.can_view_contracts.help_text }}</small>
+                            </label>
+                        </div>
+                        {% if form.can_view_contracts.errors %}
+                        <div class="text-danger mt-2">
+                            <small>{{ form.can_view_contracts.errors }}</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Permissões de Gestão Avançada -->
+                <div class="card mb-4 border-danger">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0 text-danger">
+                            <i class="fas fa-cog"></i>
+                            {% trans "Gestão Avançada" %}
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check form-switch">
+                            {{ form.can_manage_contracts }}
+                            <label class="form-check-label" for="{{ form.can_manage_contracts.id_for_label }}">
+                                {{ form.can_manage_contracts.label }}
+                                <br>
+                                <small class="text-muted">{{ form.can_manage_contracts.help_text }}</small>
+                            </label>
+                        </div>
+                        {% if form.can_manage_contracts.errors %}
+                        <div class="text-danger mt-2">
+                            <small>{{ form.can_manage_contracts.errors }}</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Botões de Ação -->
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'access_control:country_supplier_permissions' %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> {% trans "Cancelar" %}
+                    </a>
+                    <button type="submit" class="btn btn-success btn-lg">
+                        <i class="fas fa-save"></i> {% trans "Salvar Permissões" %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Informação Adicional -->
+    <div class="alert alert-light mt-4" role="alert">
+        <h6 class="alert-heading">
+            <i class="fas fa-info-circle"></i>
+            {% trans "Importante" %}
+        </h6>
+        <ul class="mb-0">
+            <li>{% trans "As permissões individuais sobrescrevem as permissões herdadas dos grupos do AD." %}</li>
+            <li>{% trans "Se o usuário não tiver permissão para fazer login, ele não poderá acessar o sistema mesmo com outras permissões ativas." %}</li>
+            <li>{% trans "Alterações nas permissões entram em vigor no próximo login do usuário." %}</li>
+        </ul>
+    </div>
+</div>
+
+<style>
+    .form-check-input {
+        width: 2.5em;
+        height: 1.25em;
+        cursor: pointer;
+    }
+    
+    .form-check-label {
+        cursor: pointer;
+        margin-left: 0.5rem;
+    }
+    
+    .card {
+        transition: box-shadow 0.3s ease;
+    }
+    
+    .card:hover {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+</style>
+
+<script>
+    // Confirmação antes de sair sem salvar
+    let formChanged = false;
+    
+    document.getElementById('permissionsForm').addEventListener('change', function() {
+        formChanged = true;
+    });
+    
+    document.getElementById('permissionsForm').addEventListener('submit', function() {
+        formChanged = false;
+    });
+    
+    window.addEventListener('beforeunload', function(e) {
+        if (formChanged) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+</script>
+{% endblock %}
